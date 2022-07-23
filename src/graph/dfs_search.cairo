@@ -1,10 +1,10 @@
-from starknet.data_types.data_types import Node
+from src.data_types.data_types import Vertex
 from starkware.cairo.common.default_dict import default_dict_new, default_dict_finalize
 from starkware.cairo.common.dict_access import DictAccess
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math_cmp import is_le
 
-from starknet.utils.array_utils import Stack
+from src.utils.array_utils import Stack
 
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.dict import dict_write, dict_update, dict_read
@@ -12,6 +12,7 @@ from starkware.cairo.common.dict import dict_write, dict_update, dict_read
 const MAX_FELT = 2 ** 251 - 1
 const MAX_HOPS = 4
 
+# @deprecated
 func init_dict() -> (dict_ptr : DictAccess*):
     alloc_locals
 
@@ -20,12 +21,16 @@ func init_dict() -> (dict_ptr : DictAccess*):
     return (dict_end)
 end
 
+# @notice startes a DFS search to find all routes from the source to the target vertex.
+# @param graph_len the number of vertices in the graph
+# @param graph the graph
+#TODO adapt it
 func init_dfs{range_check_ptr}(
     graph_len : felt,
-    graph : Node*,
+    graph : Vertex*,
     neighbors : felt*,
-    start_node : Node,
-    destination_node : Node,
+    start_node : Vertex,
+    destination_node : Vertex,
     max_hops : felt,
 ) -> (saved_paths_len : felt, saved_paths : felt*):
     alloc_locals
@@ -57,10 +62,10 @@ end
 
 func DFS_rec{dict_ptr : DictAccess*, range_check_ptr}(
     graph_len : felt,
-    graph : Node*,
+    graph : Vertex*,
     neighbors : felt*,
-    current_node : Node,
-    destination_node : Node,
+    current_node : Vertex,
+    destination_node : Vertex,
     max_hops : felt,
     current_path_len : felt,
     current_path : felt*,
@@ -116,10 +121,10 @@ end
 
 func visit_successors{dict_ptr : DictAccess*, range_check_ptr}(
     graph_len : felt,
-    graph : Node*,
+    graph : Vertex*,
     neighbors : felt*,
-    current_node : Node,
-    destination_node : Node,
+    current_node : Vertex,
+    destination_node : Vertex,
     remaining_hops : felt,
     successors_len : felt,
     current_path_len : felt,
@@ -163,7 +168,7 @@ func visit_successors{dict_ptr : DictAccess*, range_check_ptr}(
     end
 
     # Already visited successor, avoid cycles
-    let successor = current_node.neighbor_nodes[successors_len - 1]
+    let successor = current_node.adjacent_vertices[successors_len - 1]
     let successor_index = successor.index
     let (is_already_visited) = is_in_path(current_path_len, current_path, successor_index)
     if is_already_visited == 1:
@@ -237,7 +242,6 @@ func visit_successors{dict_ptr : DictAccess*, range_check_ptr}(
         saved_paths_len=saved_paths_len_updated,
         saved_paths=saved_paths,
     )
-
 end
 
 # @notice returns the index of the node in the graph
@@ -267,7 +271,7 @@ end
 # @notice Return with an array composed by (path_len,path) subarrays identified by token addresses.
 func get_tokens_from_path(
     graph_len : felt,
-    graph : Node*,
+    graph : Vertex*,
     saved_paths_len : felt,
     saved_paths : felt*,
     current_index : felt,
@@ -299,7 +303,7 @@ end
 
 # @notice parses the token addresses for all tokens between indexes i and j in the indexes array
 func parse_array_segment(
-    graph_len : felt, graph : Node*, saved_paths : felt*, i : felt, j : felt, token_paths : felt*
+    graph_len : felt, graph : Vertex*, saved_paths : felt*, i : felt, j : felt, token_paths : felt*
 ):
     if i == j:
         return ()

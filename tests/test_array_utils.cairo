@@ -1,5 +1,5 @@
 %lang starknet
-from starknet.utils.array_utils import Stack
+from src.utils.array_utils import Stack
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 

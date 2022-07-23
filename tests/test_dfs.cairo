@@ -1,8 +1,8 @@
 %lang starknet
-from starknet.graph.graph import build_graph
-from starknet.graph.dfs_search import init_dfs
+from src.graph.graph import build_graph
+from src.graph.dfs_search import init_dfs
 
-from starknet.data_types.data_types import Pair, Node
+from src.data_types.data_types import Pair, Vertex
 from starkware.cairo.common.alloc import alloc
 
 const TOKEN_A = 123
