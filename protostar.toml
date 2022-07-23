@@ -1,0 +1,28 @@
+["protostar.config"]
+protostar_version = "0.2.6"
+
+["protostar.project"]
+libs_path = "lib"
+
+["protostar.contracts"]
+hubble = [
+    "starknet/contracts/hubble.cairo",
+]
+
+amm_wrapper = [
+    "starknet/contracts/amm_wrapper.cairo",
+]
+
+old_amm_wrapper = [
+    "starknet/contracts/old_amm_wrapper.cairo",
+]
+
+
+["protostar.shared_command_configs"]
+cairo_path = ["./lib/cairo_contracts/src"]
+
+[profile.devnet.protostar.deploy]
+gateway-url = "http://127.0.0.1:5050/"
+
+[profile.testnet.protostar.deploy]
+network="alpha-goerli"
