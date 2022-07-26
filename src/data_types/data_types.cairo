@@ -11,3 +11,8 @@ struct Edge:
     member dst_identifier : felt
     member weight : felt
 end
+
+struct WeightedEdge:
+    member adj_vertex : Vertex
+    member weight : felt
+end

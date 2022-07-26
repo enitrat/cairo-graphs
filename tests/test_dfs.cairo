@@ -1,9 +1,11 @@
 %lang starknet
-from src.graph.graph import build_graph
-from src.graph.dfs_search import init_dfs
-
-from src.data_types.data_types import Pair, Vertex
+# from src.graph.graph import build_graph
 from starkware.cairo.common.alloc import alloc
+
+from src.graph.dfs_search import init_dfs
+from src.data_types.data_types import Vertex
+
+from tests.utils import Pair, build_graph_bidirected
 
 const TOKEN_A = 123
 const TOKEN_B = 456
@@ -13,15 +15,20 @@ const TOKEN_D = 982
 # works, 2 ways
 @external
 func test_dfs{range_check_ptr}():
-    let pairs : Pair* = alloc()
-    assert pairs[0] = Pair(TOKEN_A, TOKEN_B)
-    assert pairs[1] = Pair(TOKEN_A, TOKEN_C)
-    assert pairs[2] = Pair(TOKEN_B, TOKEN_C)
+    alloc_locals
+    let (local graph : Vertex*) = alloc()
+    let (local adj_vertices_count : felt*) = alloc()
+    let input_data : Pair* = alloc()
+    assert input_data[0] = Pair(TOKEN_A, TOKEN_B)
+    assert input_data[1] = Pair(TOKEN_A, TOKEN_C)
+    assert input_data[2] = Pair(TOKEN_B, TOKEN_C)
 
     # let expected_paths: felt* = alloc()
     # assert expected_paths[0] = Pair(TOKEN_A, TOKEN_B)
 
-    let (graph_len, graph, neighbors) = build_graph(pairs_len=3, pairs=pairs)
+    let (graph_len, adj_vertices_count) = build_graph_bidirected(
+        3, input_data, 0, graph, adj_vertices_count
+    )
 
     # graph is [node_a,node_b,noce_c]
     # neighbors : [2,2,2]
@@ -31,7 +38,9 @@ func test_dfs{range_check_ptr}():
     # The length of the saved_paths array is : 1(length of path_1) + path_1_len + 1(length of path_2) + path_2_len = 1+3+2+1 = 7
     let node_a = graph[0]
     let node_b = graph[1]
-    let (saved_paths_len, saved_paths) = init_dfs(graph_len, graph, neighbors, node_a, node_b, 4)
+    let (saved_paths_len, saved_paths) = init_dfs(
+        graph_len, graph, adj_vertices_count, node_a, node_b, 4
+    )
     # %{
     #     print(ids.saved_paths_len)
     #     for i in range(ids.saved_paths_len):
@@ -52,12 +61,15 @@ end
 # works, 3 ways
 @external
 func test_dfs_2{range_check_ptr}():
-    let pairs : Pair* = alloc()
-    assert pairs[0] = Pair(TOKEN_A, TOKEN_B)
-    assert pairs[1] = Pair(TOKEN_A, TOKEN_C)
-    assert pairs[2] = Pair(TOKEN_B, TOKEN_C)
-    assert pairs[3] = Pair(TOKEN_D, TOKEN_C)
-    assert pairs[4] = Pair(TOKEN_D, TOKEN_B)
+    alloc_locals
+    let (local graph : Vertex*) = alloc()
+    let (local adj_vertices_count : felt*) = alloc()
+    let input_data : Pair* = alloc()
+    assert input_data[0] = Pair(TOKEN_A, TOKEN_B)
+    assert input_data[1] = Pair(TOKEN_A, TOKEN_C)
+    assert input_data[2] = Pair(TOKEN_B, TOKEN_C)
+    assert input_data[3] = Pair(TOKEN_D, TOKEN_C)
+    assert input_data[4] = Pair(TOKEN_D, TOKEN_B)
     # graph is [node_a,node_b,noce_c,node_d]
     # neighbors : [2,3,3,2]
     # we want all paths from TOKEN_A to TOKEN_C
@@ -67,11 +79,15 @@ func test_dfs_2{range_check_ptr}():
     # so we have 3 possible paths.
     # The length of the saved_paths array is 1 + 2 + 1 + 4 + 1 + 3 = 12
 
-    let (graph_len, graph, neighbors) = build_graph(pairs_len=5, pairs=pairs)
+    let (graph_len, adj_vertices_count) = build_graph_bidirected(
+        5, input_data, 0, graph, adj_vertices_count
+    )
 
     let node_a = graph[0]
     let node_c = graph[2]
-    let (saved_paths_len, saved_paths) = init_dfs(graph_len, graph, neighbors, node_a, node_c, 4)
+    let (saved_paths_len, saved_paths) = init_dfs(
+        graph_len, graph, adj_vertices_count, node_a, node_c, 4
+    )
     # %{
     #     print(ids.saved_paths_len)
     #     for i in range(ids.saved_paths_len):

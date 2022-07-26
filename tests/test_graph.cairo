@@ -1,7 +1,10 @@
 %lang starknet
-from src.graph.graph import add_neighbor, add_vertex_to_graph, get_vertex_index, add_edge
 from starkware.cairo.common.alloc import alloc
+
+from src.graph.graph import add_neighbor, add_vertex_to_graph, get_vertex_index, add_edge
 from src.data_types.data_types import Edge, Vertex
+
+from tests.utils import build_graph_bidirected, Pair
 
 const TOKEN_A = 123
 const TOKEN_B = 456
@@ -121,12 +124,6 @@ func test_get_node_index():
     return ()
 end
 
-
-struct Pair:
-    member token_0 : felt
-    member token_1 : felt
-end
-
 @external
 func test_build_graph_bidirected():
     alloc_locals
@@ -140,7 +137,7 @@ func test_build_graph_bidirected():
     # the node at graph[i] has adj_vertices_count[i] adjacent vertices.
     # that allows us to dynamically modify the number of neighbors to a vertex, without the need
     # to rebuild the graph (since memory is write-once, we can't update a property of a struct already stored.)
-    let (graph_len, adj_vertices_count) = _build_graph_bidirected(
+    let (graph_len, adj_vertices_count) = build_graph_bidirected(
         3, input_data, 0, graph, adj_vertices_count
     )
 
@@ -152,36 +149,4 @@ func test_build_graph_bidirected():
     assert adj_vertices_count[1] = 2
     assert adj_vertices_count[2] = 2
     return ()
-end
-
-# @notice internal function to build the graph recursively
-# @dev
-# @param pairs_len : The length of the pairs array
-# @param pairs : The pairs array
-# @param graph_len : The length of the graph
-# @param graph : The graph
-# @param neighbors : The array of neighbors
-func _build_graph_bidirected(
-    pairs_len : felt, pairs : Pair*, graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
-) -> (graph_len : felt, adj_vertices_count : felt*):
-    alloc_locals
-
-    if pairs_len == 0:
-        return (graph_len, adj_vertices_count)
-    end
-
-    let token_0 = [pairs].token_0
-    let token_1 = [pairs].token_1
-
-    let (graph_len, adj_vertices_count) = add_edge(
-        graph, graph_len, adj_vertices_count, Edge(token_0, token_1, 0)
-    )
-
-    let (graph_len, adj_vertices_count) = add_edge(
-        graph, graph_len, adj_vertices_count, Edge(token_1, token_0, 0)
-    )
-
-    return _build_graph_bidirected(
-        pairs_len - 1, pairs + Pair.SIZE, graph_len, graph, adj_vertices_count
-    )
 end

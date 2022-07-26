@@ -3,69 +3,10 @@ from starkware.cairo.common.alloc import alloc
 from starkware.cairo.lang.compiler.lib.registers import get_fp_and_pc
 from starkware.cairo.common.math import assert_not_equal
 from src.data_types.data_types import Vertex, Edge
+from src.utils.array_utils import Array
 
 # # Adjancency list graph implementation
 # # Meant to build a graph from AMM pairs
-
-# # @notice builds a graph of nodes interconnected if the pair of tokens exists
-# # @param pairs : An array of pairs
-# # @returns graph_len : number of graph vertices
-# # @returns graph : an array of vertices
-# # @returns adj_vertices_count : an array that tracks the number of adjacent vertices of each vertex
-# func build_graph(pairs_len : felt, pairs : Pair*) -> (
-#     graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
-# ):
-#     alloc_locals
-#     let (local graph : Node*) = alloc()
-#     let (local adj_vertices_count : felt*) = alloc()
-
-# # the node at graph[i] has adj_vertices_count[i] adjacent vertices.
-#     # that allows us to dynamically modify the number of neighbors to a vertex, without the need
-#     # to rebuild the graph (since memory is write-once, we can't update a property of a struct already stored.)
-#     let (graph_len, adj_vertices_count) = _build_graph(
-#         pairs_len, pairs, 0, graph, adj_vertices_count
-#     )
-
-# return (graph_len, graph, adj_vertices_count)
-# end
-
-# # @notice internal function to build the graph recursively
-# # @dev
-# # @param pairs_len : The length of the pairs array
-# # @param pairs : The pairs array
-# # @param graph_len : The length of the graph
-# # @param graph : The graph
-# # @param neighbors : The array of neighbors
-# func _build_graph(
-#     pairs_len : felt, pairs : Pair*, graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
-# ) -> (graph_len : felt, adj_vertices_count : felt*):
-#     alloc_locals
-
-# if pairs_len == 0:
-#         return (graph_len, adj_vertices_count)
-#     end
-
-# let token_0 = [pairs].token_0
-#     let token_1 = [pairs].token_1
-
-# let (graph_len) = try_add_node(graph_len, graph, adj_vertices_count, token_0)
-#     let (graph_len) = try_add_node(graph_len, graph, adj_vertices_count, token_1)
-
-# let (token_0_index) = get_vertex_index(graph_len, graph, token_0)
-#     let (token_1_index) = get_vertex_index(graph_len, graph, token_1)
-
-# let node_0 : Node = graph[token_0_index]
-#     let node_1 : Node = graph[token_1_index]
-
-# let (adj_vertices_count : felt*) = add_neighbor(
-#         node_0, node_1, graph_len, adj_vertices_count, token_0_index
-#     )
-#     let (adj_vertices_count : felt*) = add_neighbor(
-#         node_1, node_0, graph_len, adj_vertices_count, token_1_index
-#     )
-
-# return _build_graph(pairs_len - 1, pairs + Pair.SIZE, graph_len, graph, adj_vertices_count)
-# end
 
 # @notice Adds an edge between two graph vertices
 # @dev if the vertices don't exist yet, adds them to the graph
@@ -76,7 +17,6 @@ from src.data_types.data_types import Vertex, Edge
 # @param vertex1 : The second vertex
 # @returns graph_len : The new length of the graph
 # @returns adj_vertices_count : The new array of adjacent vertices counts
-# TODO allow weight
 func add_edge(graph : Vertex*, graph_len : felt, adj_vertices_count : felt*, edge : Edge) -> (
     graph_len : felt, adj_vertices_count : felt*
 ):
@@ -159,36 +99,14 @@ func add_neighbor(
     vertex_index_in_graph : felt,
     weight : felt,
 ) -> (adj_vertices_count : felt*):
-    let current_len = adj_vertices_count[vertex_index_in_graph]
-    assert vertex.adjacent_vertices[current_len] = new_neighbor
+    let current_count = adj_vertices_count[vertex_index_in_graph]
+    assert vertex.adjacent_vertices[current_count] = new_neighbor
     # update neighbors_len
-    let (new_adj_vertices_len : felt*) = update_adj_vertices_count(
-        adj_vertices_coun_len, adj_vertices_count, vertex_index_in_graph
+    let new_count = current_count + 1
+    let (new_adj_vertices_count : felt*) = Array.update_value_at_index(
+        adj_vertices_coun_len, adj_vertices_count, vertex_index_in_graph, new_count
     )
-    return (new_adj_vertices_len)
-end
-
-# @notice increments the neighbors_len of a node by re-writing the entire
-func update_adj_vertices_count(
-    adj_vertices_count_len : felt, adj_vertices_count : felt*, vertex_index_in_graph : felt
-) -> (new_neighbors : felt*):
-    alloc_locals
-    let (__fp__, _) = get_fp_and_pc()
-    let (local res : felt*) = alloc()
-    local new_value = adj_vertices_count[vertex_index_in_graph] + 1
-    memcpy(res, adj_vertices_count, vertex_index_in_graph)  # copy index elems from neighbors_len to res
-    memcpy(res + vertex_index_in_graph, &new_value, 1)  # store updated_node at memory cell [res+member_index]
-
-    # first memory address to copy in
-    # first memory address to copy from
-    # number of value to copy
-    memcpy(
-        res + vertex_index_in_graph + 1,
-        adj_vertices_count + vertex_index_in_graph + 1,
-        adj_vertices_count_len - vertex_index_in_graph - 1,
-    )
-
-    return (res)
+    return (new_adj_vertices_count)
 end
 
 # @notice Recursive function returning the index of the node in the graph
