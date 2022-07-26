@@ -92,4 +92,20 @@ namespace Array:
 
         return get_value_index(array_len - 1, array + 1, value, current_index + 1)
     end
+
+    func inverse(array_len : felt, array : felt*) -> (inv_array : felt*):
+        alloc_locals
+        let (local inv_array : felt*) = alloc()
+
+        _inverse_internal(array_len, array, inv_array)
+        return (inv_array)
+    end
+end
+
+func _inverse_internal(array_len : felt, array : felt*, inv_array : felt*):
+    if array_len == 0:
+        return ()
+    end
+    assert inv_array[array_len - 1] = [array]
+    return _inverse_internal(array_len - 1, array + 1, inv_array)
 end

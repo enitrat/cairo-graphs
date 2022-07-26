@@ -26,11 +26,11 @@ func build_graph_bidirected(
     let token_1 = [pairs].token_1
 
     let (graph_len, adj_vertices_count) = add_edge(
-        graph, graph_len, adj_vertices_count, Edge(token_0, token_1, 0)
+        graph, graph_len, adj_vertices_count, Edge(token_0, token_1, 1)
     )
 
     let (graph_len, adj_vertices_count) = add_edge(
-        graph, graph_len, adj_vertices_count, Edge(token_1, token_0, 0)
+        graph, graph_len, adj_vertices_count, Edge(token_1, token_0, 1)
     )
 
     return build_graph_bidirected(

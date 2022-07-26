@@ -2,7 +2,7 @@ from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.lang.compiler.lib.registers import get_fp_and_pc
 from starkware.cairo.common.math import assert_not_equal
-from src.data_types.data_types import Vertex, Edge
+from src.data_types.data_types import Vertex, Edge, DirectedEdge
 from src.utils.array_utils import Array
 
 # # Adjancency list graph implementation
@@ -79,7 +79,7 @@ end
 func add_vertex_to_graph(
     graph_len : felt, graph : Vertex*, adj_vertices_count : felt*, identifier : felt
 ) -> (new_graph_len : felt):
-    let adj_vertices : Vertex* = alloc()
+    let adj_vertices : DirectedEdge* = alloc()
     tempvar vertex : Vertex = Vertex(graph_len, identifier, adj_vertices)
     assert graph[graph_len] = vertex
     assert adj_vertices_count[graph_len] = 0
@@ -100,7 +100,8 @@ func add_neighbor(
     weight : felt,
 ) -> (adj_vertices_count : felt*):
     let current_count = adj_vertices_count[vertex_index_in_graph]
-    assert vertex.adjacent_vertices[current_count] = new_neighbor
+    tempvar directed_edge = DirectedEdge(new_neighbor, weight)
+    assert vertex.adjacent_vertices[current_count] = directed_edge
     # update neighbors_len
     let new_count = current_count + 1
     let (new_adj_vertices_count : felt*) = Array.update_value_at_index(

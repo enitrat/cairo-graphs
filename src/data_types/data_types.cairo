@@ -2,7 +2,7 @@
 struct Vertex:
     member index : felt
     member identifier : felt
-    member adjacent_vertices : Vertex*
+    member adjacent_vertices : DirectedEdge*
 end
 
 # A pair containing 2 token identified by their address
@@ -12,7 +12,7 @@ struct Edge:
     member weight : felt
 end
 
-struct WeightedEdge:
-    member adj_vertex : Vertex
+struct DirectedEdge:
+    member dst : Vertex
     member weight : felt
 end

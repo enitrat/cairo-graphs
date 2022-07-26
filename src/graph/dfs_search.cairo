@@ -168,7 +168,7 @@ func visit_successors{dict_ptr : DictAccess*, range_check_ptr}(
     end
 
     # Already visited successor, avoid cycles
-    let successor = current_node.adjacent_vertices[successors_len - 1]
+    let successor = current_node.adjacent_vertices[successors_len - 1].dst
     let successor_index = successor.index
     let (is_already_visited) = is_in_path(current_path_len, current_path, successor_index)
     if is_already_visited == 1:

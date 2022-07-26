@@ -2,7 +2,7 @@
 from starkware.cairo.common.alloc import alloc
 
 from src.graph.graph import add_neighbor, add_vertex_to_graph, get_vertex_index, add_edge
-from src.data_types.data_types import Edge, Vertex
+from src.data_types.data_types import Edge, Vertex, DirectedEdge
 
 from tests.utils import build_graph_bidirected, Pair
 
@@ -18,9 +18,9 @@ func build_graph_before_each() -> (
     let (graph : Vertex*) = alloc()
     let (adj_vertices_count : felt*) = alloc()  # array that tracks neighbors_len
 
-    let (vertex_a_neighbors : Vertex*) = alloc()
-    let (vertex_b_neighbors : Vertex*) = alloc()
-    let (vertex_c_neighbors : Vertex*) = alloc()
+    let (vertex_a_neighbors : DirectedEdge*) = alloc()
+    let (vertex_b_neighbors : DirectedEdge*) = alloc()
+    let (vertex_c_neighbors : DirectedEdge*) = alloc()
 
     local vertex_a : Vertex = Vertex(0, TOKEN_A, vertex_a_neighbors)
     local vertex_b : Vertex = Vertex(1, TOKEN_B, vertex_b_neighbors)
@@ -70,7 +70,7 @@ func test_add_neighbor():
     let (adj_vertices_count) = add_neighbor(
         graph[0], graph[1], adj_vertices_count_len, adj_vertices_count, 0, 0
     )
-    assert graph[0].adjacent_vertices[0].identifier = TOKEN_B
+    assert graph[0].adjacent_vertices[0].dst.identifier = TOKEN_B
     assert adj_vertices_count[0] = 1  # TOKEN_A has 1 neighbor, which is TOKEN_B
     assert adj_vertices_count[1] = 0  # TOKEN_B still has 0 neighbors
 
@@ -78,14 +78,14 @@ func test_add_neighbor():
     let (adj_vertices_count) = add_neighbor(
         graph[1], graph[0], adj_vertices_count_len, adj_vertices_count, 1, 0
     )
-    assert graph[1].adjacent_vertices[0].identifier = TOKEN_A
+    assert graph[1].adjacent_vertices[0].dst.identifier = TOKEN_A
     assert adj_vertices_count[1] = 1  # TOKEN_B now has 1 neighbor
 
     # add TOKEN_C as neighbor of TOKEN_A
     let (adj_vertices_count) = add_neighbor(
         graph[0], graph[2], adj_vertices_count_len, adj_vertices_count, 0, 0
     )
-    assert graph[0].adjacent_vertices[1].identifier = TOKEN_C
+    assert graph[0].adjacent_vertices[1].dst.identifier = TOKEN_C
     assert adj_vertices_count[0] = 2  # TOKEN_A now has 2 neighbors
 
     return ()
@@ -106,7 +106,7 @@ func test_add_edge():
     let (local res : felt) = get_vertex_index(graph_len, graph, TOKEN_D)
     assert res = 3
 
-    assert graph[3].adjacent_vertices[0].identifier = TOKEN_C
+    assert graph[3].adjacent_vertices[0].dst.identifier = TOKEN_C
 
     return ()
 end

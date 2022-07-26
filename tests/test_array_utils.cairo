@@ -109,3 +109,23 @@ func test_get_value_index():
     assert index = 2
     return ()
 end
+
+@external
+func test_inv_array():
+    alloc_locals
+    let (local my_array : felt*) = alloc()
+    assert my_array[0] = 1
+    assert my_array[1] = 2
+    assert my_array[2] = 3
+    let array_len = 3
+    let (inv_array) = Array.inverse(array_len, my_array)
+    tempvar value = inv_array[2]
+    assert value = my_array[0]
+    tempvar value = inv_array[1]
+    assert value = my_array[1]
+    tempvar value = inv_array[0]
+    assert value = my_array[2]
+    %{ expect_revert() %}
+    tempvar value = inv_array[3]
+    return ()
+end
