@@ -11,12 +11,6 @@ namespace Stack:
 
         let (local res : felt*) = alloc()
         memcpy(res, stack, stack_len - 1)
-        # %{
-        #     print(f" Removing from stack. current path len : {ids.stack_len-1}")
-        #     for i in range(ids.stack_len-1):
-        #         print(memory[ids.res+i])
-        #     print(" ______NEXT______ ")
-        # %}
         return (stack_len - 1, res, stack[stack_len - 1])
     end
 
@@ -27,12 +21,6 @@ namespace Stack:
 
         assert stack[stack_len] = element
         let new_stack_len = stack_len + 1
-        # %{
-        #     print(f" Inserting from stack. current path len : {ids.stack_len+1}")
-        #     for i in range(ids.stack_len+1):
-        #         print(memory[ids.stack+i])
-        #     print(" ______NEXT______ ")
-        # %}
         return (new_stack_len, stack)
     end
 end

@@ -1,18 +1,21 @@
-# A vertex has an index (its position in the graph DS), a unique identifier and a list of adjacent vertices.
+# A vertex has an index (its position in the graph DS),
+# a unique identifier and a list of adjacent vertices.
 struct Vertex:
     member index : felt
     member identifier : felt
-    member adjacent_vertices : DirectedEdge*
+    member adjacent_vertices : AdjacentVertex*
 end
 
-# A pair containing 2 token identified by their address
+# An edge is represented by its source and destination identifiers and a weight.
 struct Edge:
     member src_identifier : felt
     member dst_identifier : felt
     member weight : felt
 end
 
-struct DirectedEdge:
+# dst represents the adjacent vertex in the graph
+# weight is the distance from the current vertex to dst.
+struct AdjacentVertex:
     member dst : Vertex
     member weight : felt
 end

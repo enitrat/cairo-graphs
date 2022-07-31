@@ -2,156 +2,158 @@
 # from src.graph.graph import build_graph
 from starkware.cairo.common.alloc import alloc
 
-from src.graph.dijkstra import init_dijkstra, shortest_path
+from src.graph.graph import Graph
+from src.data_types.data_types import Edge
+from src.graph.dijkstra import run_dijkstra, shortest_path
 from src.data_types.data_types import Vertex
 
-from tests.utils import Pair, build_graph_bidirected
+from tests.utils import (
+    build_graph_from_undirected_edge,
+    build_graph_directed_edge,
+)
 
-const TOKEN_A = 123
-const TOKEN_B = 456
-const TOKEN_C = 990
-const TOKEN_D = 982
-
-func before_each_1() -> (graph_len : felt, graph : Vertex*, adj_vertices_count : felt*):
+func before_undirected_weighted() -> (
+    graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
+):
     alloc_locals
-    let (local graph : Vertex*) = alloc()
-    let (local adj_vertices_count : felt*) = alloc()
-    let input_data : Pair* = alloc()
-    assert input_data[0] = Pair(TOKEN_A, TOKEN_B)
-    assert input_data[1] = Pair(TOKEN_A, TOKEN_C)
-    assert input_data[2] = Pair(TOKEN_B, TOKEN_C)
+    let (graph_len, graph, adj_vertices_count) = Graph.new_graph()
+    let input_data : Edge* = alloc()
 
-    # let expected_paths: felt* = alloc()
-    # assert expected_paths[0] = Pair(TOKEN_A, TOKEN_B)
+    assert input_data[0] = Edge(1, 2, 1)
+    assert input_data[1] = Edge(1, 3, 3)
+    assert input_data[2] = Edge(1, 4, 4)
+    assert input_data[3] = Edge(2, 3, 1)
+    assert input_data[4] = Edge(3, 4, 1)
+    assert input_data[5] = Edge(4, 5, 1)
+    assert input_data[6] = Edge(5, 6, 1)
+    assert input_data[7] = Edge(5, 8, 3)
+    assert input_data[8] = Edge(6, 7, 1)
+    assert input_data[9] = Edge(7, 8, 7)
+    assert input_data[10] = Edge(8, 9, 1)
+    assert input_data[11] = Edge(12, 9, 1)
 
-    let (local graph_len, adj_vertices_count) = build_graph_bidirected(
-        3, input_data, 0, graph, adj_vertices_count
-    )
-
-    return (graph_len, graph, adj_vertices_count)
-end
-
-func before_each_2() -> (graph_len : felt, graph : Vertex*, adj_vertices_count : felt*):
-    alloc_locals
-    let (local graph : Vertex*) = alloc()
-    let (local adj_vertices_count : felt*) = alloc()
-    let input_data : Pair* = alloc()
-    assert input_data[0] = Pair(TOKEN_A, TOKEN_B)
-    assert input_data[1] = Pair(TOKEN_A, TOKEN_C)
-    assert input_data[2] = Pair(TOKEN_B, TOKEN_C)
-    assert input_data[3] = Pair(TOKEN_D, TOKEN_C)
-    assert input_data[4] = Pair(TOKEN_D, TOKEN_B)
-
-    let (graph_len, adj_vertices_count) = build_graph_bidirected(
-        5, input_data, 0, graph, adj_vertices_count
+    let (graph_len, adj_vertices_count) = build_graph_from_undirected_edge(
+        12, input_data, 0, graph, adj_vertices_count
     )
     return (graph_len, graph, adj_vertices_count)
 end
 
-# works, 2 ways
-@external
-func test_dijkstra{range_check_ptr}():
+func before_directed_weighted() -> (graph_len : felt, graph : Vertex*, adj_vertices_count : felt*):
     alloc_locals
-    let (graph_len, graph, adj_vertices_count) = before_each_1()
+    let (graph_len, graph, adj_vertices_count) = Graph.new_graph()
+    let input_data : Edge* = alloc()
 
-    # graph is [node_a,node_b,noce_c]
-    # neighbors : [2,2,2]
-    let node_a = graph[0]
-    let node_b = graph[1]
-    let (graph_len, predecessors, distances) = init_dijkstra(
-        graph_len, graph, adj_vertices_count, node_a
+    # 0, 0, 3, 0, 0, 3, 0, 0, 0, 0,
+    # 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    # 0, 2, 0, 0, 0, 0, 0, 0, 0, 0,
+    # 0, 1, 0, 0, 0, 0, 3, 0, 1, 0,
+    # 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    # 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    # 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    # 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    # 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+    # 0, 0, 0, 0, 0, 3, 1, 0, 0, 0,
+    assert input_data[0] = Edge(1, 3, 3)
+    assert input_data[1] = Edge(1, 6, 3)
+    assert input_data[2] = Edge(3, 2, 2)
+    assert input_data[3] = Edge(2, 4, 1)
+    assert input_data[4] = Edge(4, 7, 3)
+    assert input_data[5] = Edge(4, 9, 1)
+    assert input_data[6] = Edge(5, 1, 3)
+    assert input_data[7] = Edge(7, 1, 1)
+    assert input_data[8] = Edge(8, 12, 1)
+    assert input_data[9] = Edge(9, 5, 1)
+    assert input_data[10] = Edge(12, 7, 1)
+
+    let (graph_len, adj_vertices_count) = build_graph_directed_edge(
+        11, input_data, 0, graph, adj_vertices_count
     )
-
-    # %{
-    #     print("returned : ")
-    #     print(ids.graph_len)
-    #     for i in range(ids.graph_len):
-    #        print(f"Predecessor : {memory[ids.predecessors+i]}-- Distance : {memory[ids.distances+i]}")
-    # %}
-
-    return ()
+    return (graph_len, graph, adj_vertices_count)
 end
 
-# works, 2 ways
 @external
-func test_shortest_path_1{range_check_ptr}():
+func test_dijkstra_undirected_weighted{range_check_ptr}():
     alloc_locals
-    let (graph_len, graph, adj_vertices_count) = before_each_1()
+    let (graph_len, graph, adj_vertices_count) = before_undirected_weighted()
 
-    # graph is [node_a,node_b,noce_c]
-    # neighbors : [2,2,2]
-    let node_a = graph[0]
-    let node_b = graph[1]
+    # Test 1 : from 1 to 9
 
     let (path_len, path, distance) = shortest_path(
-        graph_len, graph, adj_vertices_count, node_a, node_b
+        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=9
     )
 
-    %{
-        print(f"Total distance : {ids.distance} ")    
-        print(f"Total steps : {ids.path_len}")
-        for i in range(ids.path_len):
-           print(f" step n {i} : {memory[ids.path+i]}")
-    %}
+    assert path_len = 7
+    assert distance = 8
+    assert path[0] = 1
+    assert path[1] = 2
+    assert path[2] = 3
+    assert path[3] = 4
+    assert path[4] = 5
+    assert path[5] = 8
+    assert path[6] = 9
 
-    return ()
-end
-
-# # works, 3 ways
-@external
-func test_dijkstra_2{range_check_ptr}():
-    alloc_locals
-    let (graph_len, graph, adj_vertices_count) = before_each_2()
-
-    let node_a = graph[0]
-    let node_d = graph[3]
-    let (graph_len, predecessors, distances) = init_dijkstra(
-        graph_len, graph, adj_vertices_count, node_a
-    )
-    return ()
-end
-
-# works, 2 ways
-@external
-func test_shortest_path_2{range_check_ptr}():
-    alloc_locals
-    let (graph_len, graph, adj_vertices_count) = before_each_2()
-
-    # graph is [node_a,node_b,noce_c]
-    # neighbors : [2,2,2]
-    let node_a = graph[0]
-    let node_d = graph[3]
+    # Test 1 : from 8 to 7
 
     let (path_len, path, distance) = shortest_path(
-        graph_len, graph, adj_vertices_count, node_a, node_d
+        graph_len, graph, adj_vertices_count, start_vertex_id=8, end_vertex_id=7
     )
 
-    %{
-        print(f"Total distance : {ids.distance} ")    
-        print(f"Total steps : {ids.path_len}")
-        for i in range(ids.path_len):
-            print(f" step n {i} : {memory[ids.path+i]}")
-    %}
-
+    assert path_len = 4
+    assert distance = 5
+    assert path[0] = 8
+    assert path[1] = 5
+    assert path[2] = 6
+    assert path[3] = 7
     return ()
 end
 
-# TODO test when unreachable
-
-struct MyStruct:
-    member a : felt
-    member b : felt
-end
 @external
-func test_test():
-    let (struct_array : MyStruct*) = alloc()
+func test_dijkstra_directed_weighted{range_check_ptr}():
+    alloc_locals
+    let (graph_len, local graph, adj_vertices_count) = before_directed_weighted()
 
-    # Set the first three elements.
-    assert struct_array[0] = MyStruct(a=1, b=2)
-    assert struct_array[1] = MyStruct(a=3, b=4)
-    assert struct_array[2] = MyStruct(a=5, b=6)
+    # Test 1 : from 1 to 5
 
-    %{ print(ids.struct_array) %}
-    %{ print(ids.struct_array.a) %}
+    let (path_len, path, distance) = shortest_path(
+        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=5
+    )
+
+    assert path_len = 6
+    assert distance = 8
+    assert path[0] = 1
+    assert path[1] = 3
+    assert path[2] = 2
+    assert path[3] = 4
+    assert path[4] = 9
+    assert path[5] = 5
+
+    # Test 2 : from 5 to 1 is different than 1 to 5
+    let (path_len, path, distance) = shortest_path(
+        graph_len, graph, adj_vertices_count, start_vertex_id=5, end_vertex_id=1
+    )
+
+    assert path_len = 2
+    assert distance = 3
+    assert path[0] = 5
+    assert path[1] = 1
+
+    # Test 3 : from 1 to 12 is unreachable
+    let (path_len, path, distance) = shortest_path(
+        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=12
+    )
+
+    assert path_len = 0
+    assert distance = 2 ** 251 - 1
+
+    # Test 3 : from 12 to 1 is reachable
+    let (path_len, path, distance) = shortest_path(
+        graph_len, graph, adj_vertices_count, start_vertex_id=12, end_vertex_id=1
+    )
+
+    assert path_len = 3
+    assert distance = 2
+    assert path[0] = 12
+    assert path[1] = 7
+    assert path[2] = 1
     return ()
 end
