@@ -36,59 +36,102 @@ func set_array_to_max_felt(remaining_len : felt, current_index : felt*):
     return set_array_to_max_felt(remaining_len - 1, current_index + 1)
 end
 
-# @notice starts a Dijkstra algorith to find the shortest path from the source to the destination vertex.
-# @dev only works if all weights are positive.
-# @param graph_len the number of vertices in the graph
-# @param graph the graph
-# @param adjacent_vertices_count the number of adjacent vertices for each vertex.
-# @param start_vertex the starting vertex of the algorithm
-func run_dijkstra{range_check_ptr}(
-    graph_len : felt, graph : Vertex*, adjacent_vertices_count : felt*, start_identifier : felt
-) -> (graph_len : felt, predecessors : felt*, distances : felt*):
-    alloc_locals
+namespace Dijkstra:
+    # @notice starts a Dijkstra algorith to find the shortest path from the source to the destination vertex.
+    # @dev only works if all weights are positive.
+    # @param graph_len the number of vertices in the graph
+    # @param graph the graph
+    # @param adjacent_vertices_count the number of adjacent vertices for each vertex.
+    # @param start_vertex the starting vertex of the algorithm
+    func run{range_check_ptr}(
+        graph_len : felt, graph : Vertex*, adjacent_vertices_count : felt*, start_identifier : felt
+    ) -> (graph_len : felt, predecessors : felt*, distances : felt*):
+        alloc_locals
 
-    let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_identifier)
+        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_identifier)
 
-    #
-    # Data structures
-    #
+        #
+        # Data structures
+        #
 
-    # stores all of the vertices being currently visited
-    let (grey_vertices : felt*) = alloc()
-    # stores the predecessor of each node. at index i you have the predecessor of graph[i]
-    let (predecessors : felt*) = alloc()
-    # stores the distance from origin of each node. at index i you have the distance of graph[i] from origin.
-    let (distances : felt*) = alloc()
+        # stores all of the vertices being currently visited
+        let (grey_vertices : felt*) = alloc()
+        # stores the predecessor of each node. at index i you have the predecessor of graph[i]
+        let (predecessors : felt*) = alloc()
+        # stores the distance from origin of each node. at index i you have the distance of graph[i] from origin.
+        let (distances : felt*) = alloc()
 
-    #
-    # Initial state
-    #
+        #
+        # Initial state
+        #
 
-    # Set all nodes to unvisited state
-    let (dict_ptr : DictAccess*) = init_dict()
-    tempvar dict_ptr_start = dict_ptr
-    # Set all initial distances to MAX_FELT
-    set_array_to_max_felt(graph_len, distances)
-    # predecessor = max_felt means that there is no predecessor
-    set_array_to_max_felt(graph_len, predecessors)
-    # Set initial node as visited : pushed in the visited vertices, updates its value in the dict.
-    let (grey_vertices_len) = DijkstraUtils.set_visited{dict_ptr=dict_ptr}(
-        start_vertex_index, 0, grey_vertices
-    )
-    # Set initial vertex distance to 0
-    let (distances) = DijkstraUtils.set_distance(start_vertex_index, graph_len, distances, 0)
+        # Set all nodes to unvisited state
+        let (dict_ptr : DictAccess*) = init_dict()
+        tempvar dict_ptr_start = dict_ptr
+        # Set all initial distances to MAX_FELT
+        set_array_to_max_felt(graph_len, distances)
+        # predecessor = max_felt means that there is no predecessor
+        set_array_to_max_felt(graph_len, predecessors)
+        # Set initial node as visited : pushed in the visited vertices, updates its value in the dict.
+        let (grey_vertices_len) = DijkstraUtils.set_visited{dict_ptr=dict_ptr}(
+            start_vertex_index, 0, grey_vertices
+        )
+        # Set initial vertex distance to 0
+        let (distances) = DijkstraUtils.set_distance(start_vertex_index, graph_len, distances, 0)
 
-    let (predecessors, distances) = visit_grey_vertices{
-        dict_ptr=dict_ptr,
-        range_check_ptr=range_check_ptr,
-        graph_len=graph_len,
-        graph=graph,
-        adjacent_vertices_count=adjacent_vertices_count,
-    }(predecessors, distances, grey_vertices_len, grey_vertices)
+        let (predecessors, distances) = visit_grey_vertices{
+            dict_ptr=dict_ptr,
+            range_check_ptr=range_check_ptr,
+            graph_len=graph_len,
+            graph=graph,
+            adjacent_vertices_count=adjacent_vertices_count,
+        }(predecessors, distances, grey_vertices_len, grey_vertices)
 
-    default_dict_finalize(dict_ptr_start, dict_ptr, 0)
+        default_dict_finalize(dict_ptr_start, dict_ptr, 0)
 
-    return (graph_len, predecessors, distances)
+        return (graph_len, predecessors, distances)
+    end
+
+    func shortest_path{range_check_ptr}(
+        graph_len : felt,
+        graph : Vertex*,
+        adjacent_vertices_count : felt*,
+        start_vertex_id : felt,
+        end_vertex_id : felt,
+    ) -> (path_len : felt, path : felt*, distance : felt):
+        alloc_locals
+        let (graph_len, predecessors, distances) = run(
+            graph_len, graph, adjacent_vertices_count, start_vertex_id
+        )
+
+        let (end_vertex_index) = Graph.get_vertex_index(graph_len, graph, end_vertex_id)
+        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_vertex_id)
+
+        let (shortest_path_indexes : felt*) = alloc()
+        let total_distance = distances[end_vertex_index]
+
+        # Read all the predecessors from end_vertex to start_vertex
+        # and store the path in an array
+        # TODO optimize these steps.
+        assert [shortest_path_indexes] = end_vertex_index
+        let (shortest_path_len) = build_shortest_path{
+            graph_len=graph_len,
+            graph=graph,
+            predecessors=predecessors,
+            start_vertex_index=start_vertex_index,
+        }(
+            current_vertex_index=end_vertex_index,
+            shortest_path_len=1,
+            shortest_path_indexes=shortest_path_indexes + 1,
+        )
+
+        let (correct_order_path) = Array.inverse(shortest_path_len, shortest_path_indexes)
+        # stores the token addresses instead of the graph indexes in the path
+        let (identifiers : felt*) = alloc()
+        get_identifiers_from_indexes(graph, shortest_path_len, correct_order_path, identifiers)
+
+        return (shortest_path_len, identifiers, total_distance)
+    end
 end
 
 func visit_grey_vertices{
@@ -202,47 +245,6 @@ func relax_edge{
         return ()
     end
     return ()
-end
-
-func shortest_path{range_check_ptr}(
-    graph_len : felt,
-    graph : Vertex*,
-    adjacent_vertices_count : felt*,
-    start_vertex_id : felt,
-    end_vertex_id : felt,
-) -> (path_len : felt, path : felt*, distance : felt):
-    alloc_locals
-    let (graph_len, predecessors, distances) = run_dijkstra(
-        graph_len, graph, adjacent_vertices_count, start_vertex_id
-    )
-
-    let (end_vertex_index) = Graph.get_vertex_index(graph_len, graph, end_vertex_id)
-    let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_vertex_id)
-
-    let (shortest_path_indexes : felt*) = alloc()
-    let total_distance = distances[end_vertex_index]
-
-    # Read all the predecessors from end_vertex to start_vertex
-    # and store the path in an array
-    # TODO optimize these steps.
-    assert [shortest_path_indexes] = end_vertex_index
-    let (shortest_path_len) = build_shortest_path{
-        graph_len=graph_len,
-        graph=graph,
-        predecessors=predecessors,
-        start_vertex_index=start_vertex_index,
-    }(
-        current_vertex_index=end_vertex_index,
-        shortest_path_len=1,
-        shortest_path_indexes=shortest_path_indexes + 1,
-    )
-
-    let (correct_order_path) = Array.inverse(shortest_path_len, shortest_path_indexes)
-    # stores the token addresses instead of the graph indexes in the path
-    let (identifiers : felt*) = alloc()
-    get_identifiers_from_indexes(graph, shortest_path_len, correct_order_path, identifiers)
-
-    return (shortest_path_len, identifiers, total_distance)
 end
 
 # @notice: This function is called recursively. It reads the predecessor from the current vertex and

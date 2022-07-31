@@ -8,7 +8,7 @@ from src.graph.graph import Graph
 # @param graph_len : The length of the graph
 # @param graph : The graph
 # @param neighbors : The array of neighbors
-func build_graph_from_undirected_edge(
+func build_undirected_graph_from_edges(
     edges_len : felt, edges : Edge*, graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
 ) -> (graph_len : felt, adj_vertices_count : felt*):
     alloc_locals
@@ -28,7 +28,7 @@ func build_graph_from_undirected_edge(
         Edge([edges].dst_identifier, [edges].src_identifier, [edges].weight),
     )
 
-    return build_graph_from_undirected_edge(
+    return build_undirected_graph_from_edges(
         edges_len - 1, edges + Edge.SIZE, graph_len, graph, adj_vertices_count
     )
 end
@@ -40,7 +40,7 @@ end
 # @param graph_len : The length of the graph
 # @param graph : The graph
 # @param neighbors : The array of neighbors
-func build_graph_directed_edge(
+func build_directed_graph_from_edges(
     edges_len : felt, edges : Edge*, graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
 ) -> (graph_len : felt, adj_vertices_count : felt*):
     alloc_locals
@@ -53,7 +53,7 @@ func build_graph_directed_edge(
         graph, graph_len, adj_vertices_count, [edges]
     )
 
-    return build_graph_directed_edge(
+    return build_directed_graph_from_edges(
         edges_len - 1, edges + Edge.SIZE, graph_len, graph, adj_vertices_count
     )
 end

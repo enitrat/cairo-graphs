@@ -4,8 +4,6 @@ from starkware.cairo.common.alloc import alloc
 from src.graph.graph import add_neighbor, Graph
 from src.data_types.data_types import Edge, Vertex, AdjacentVertex
 
-from tests.utils import build_graph_from_undirected_edge
-
 const TOKEN_A = 123
 const TOKEN_B = 456
 const TOKEN_C = 990
@@ -126,18 +124,16 @@ end
 @external
 func test_build_graph_undirected():
     alloc_locals
-    let (local graph : Vertex*) = alloc()
-    let (local adj_vertices_count : felt*) = alloc()
     let input_data : Edge* = alloc()
-    assert input_data[0] = Edge(TOKEN_A, TOKEN_B,1)
-    assert input_data[1] = Edge(TOKEN_A, TOKEN_C,1)
-    assert input_data[2] = Edge(TOKEN_B, TOKEN_C,1)
+    assert input_data[0] = Edge(TOKEN_A, TOKEN_B, 1)
+    assert input_data[1] = Edge(TOKEN_A, TOKEN_C, 1)
+    assert input_data[2] = Edge(TOKEN_B, TOKEN_C, 1)
 
     # the node at graph[i] has adj_vertices_count[i] adjacent vertices.
     # that allows us to dynamically modify the number of neighbors to a vertex, without the need
     # to rebuild the graph (since memory is write-once, we can't update a property of a struct already stored.)
-    let (graph_len, adj_vertices_count) = build_graph_from_undirected_edge(
-        3, input_data, 0, graph, adj_vertices_count
+    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(
+        3, input_data
     )
 
     assert graph_len = 3

@@ -4,21 +4,14 @@ from starkware.cairo.common.alloc import alloc
 
 from src.graph.graph import Graph
 from src.data_types.data_types import Edge
-from src.graph.dijkstra import run_dijkstra, shortest_path
+from src.graph.dijkstra import Dijkstra
 from src.data_types.data_types import Vertex
-
-from tests.utils import (
-    build_graph_from_undirected_edge,
-    build_graph_directed_edge,
-)
 
 func before_undirected_weighted() -> (
     graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
 ):
     alloc_locals
-    let (graph_len, graph, adj_vertices_count) = Graph.new_graph()
     let input_data : Edge* = alloc()
-
     assert input_data[0] = Edge(1, 2, 1)
     assert input_data[1] = Edge(1, 3, 3)
     assert input_data[2] = Edge(1, 4, 4)
@@ -32,15 +25,14 @@ func before_undirected_weighted() -> (
     assert input_data[10] = Edge(8, 9, 1)
     assert input_data[11] = Edge(12, 9, 1)
 
-    let (graph_len, adj_vertices_count) = build_graph_from_undirected_edge(
-        12, input_data, 0, graph, adj_vertices_count
+    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(
+        12, input_data
     )
     return (graph_len, graph, adj_vertices_count)
 end
 
 func before_directed_weighted() -> (graph_len : felt, graph : Vertex*, adj_vertices_count : felt*):
     alloc_locals
-    let (graph_len, graph, adj_vertices_count) = Graph.new_graph()
     let input_data : Edge* = alloc()
 
     # 0, 0, 3, 0, 0, 3, 0, 0, 0, 0,
@@ -65,8 +57,8 @@ func before_directed_weighted() -> (graph_len : felt, graph : Vertex*, adj_verti
     assert input_data[9] = Edge(9, 5, 1)
     assert input_data[10] = Edge(12, 7, 1)
 
-    let (graph_len, adj_vertices_count) = build_graph_directed_edge(
-        11, input_data, 0, graph, adj_vertices_count
+    let (graph_len, graph, adj_vertices_count) = Graph.build_directed_graph_from_edges(
+        11, input_data
     )
     return (graph_len, graph, adj_vertices_count)
 end
@@ -78,7 +70,7 @@ func test_dijkstra_undirected_weighted{range_check_ptr}():
 
     # Test 1 : from 1 to 9
 
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=9
     )
 
@@ -94,7 +86,7 @@ func test_dijkstra_undirected_weighted{range_check_ptr}():
 
     # Test 1 : from 8 to 7
 
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=8, end_vertex_id=7
     )
 
@@ -114,7 +106,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}():
 
     # Test 1 : from 1 to 5
 
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=5
     )
 
@@ -128,7 +120,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}():
     assert path[5] = 5
 
     # Test 2 : from 5 to 1 is different than 1 to 5
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=5, end_vertex_id=1
     )
 
@@ -138,7 +130,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}():
     assert path[1] = 1
 
     # Test 3 : from 1 to 12 is unreachable
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=12
     )
 
@@ -146,7 +138,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}():
     assert distance = 2 ** 251 - 1
 
     # Test 3 : from 12 to 1 is reachable
-    let (path_len, path, distance) = shortest_path(
+    let (path_len, path, distance) = Dijkstra.shortest_path(
         graph_len, graph, adj_vertices_count, start_vertex_id=12, end_vertex_id=1
     )
 
