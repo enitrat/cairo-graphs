@@ -15,8 +15,8 @@ Since the memory is immutable in cairo, I had to make a choice when building the
 Since I store in each vertex an array containing the neighboring vertices, I had to track how many neighbors each vertex had (`adj_vertices_count[i]`).
 But since the memory is immutable in cairo, to avoid having complex operations requiring rebuilding the whole graph on each change
 I introduced an external array that tracks how many neighbors each vertex has.
-That way, when I add a neighbor to a vertex, I can just append it to the adj_vertices array of the current vertex, and I can update the number of neighbors it has by
-rebuilding the adj_vertices_count array.
+That way, when I add a neighbor to a vertex, I can just append it to the `adj_vertices` array of the current vertex, and I can update the number of neighbors it has by
+rebuilding the `adj_vertices_count` array.
 
 This implementation is probably not the most efficient, and one should expect modifications -
 I have to study the benefits of using another data structure, for example, a dict, to track how many neighbors each vertex has.
