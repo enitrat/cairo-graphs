@@ -5,9 +5,9 @@ from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.dict import dict_write, dict_read
 
-from src.data_types.data_types import Vertex
-from src.graph.graph import Graph
-from src.utils.array_utils import Array
+from src.cairo_graphs.data_types.data_types import Vertex
+from src.cairo_graphs.graph.graph import Graph
+from src.cairo_graphs.utils.array_utils import Array
 
 const MAX_FELT = 2 ** 251 - 1
 

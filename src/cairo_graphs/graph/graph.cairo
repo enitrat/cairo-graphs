@@ -1,14 +1,13 @@
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import assert_not_equal
-from src.data_types.data_types import Vertex, Edge, AdjacentVertex
-from src.utils.array_utils import Array
+from src.cairo_graphs.data_types.data_types import Vertex, Edge, AdjacentVertex
+from src.cairo_graphs.utils.array_utils import Array
 
 # # Adjancency list graph implementation
 
 namespace Graph:
-
-    #@notice Creates a new empty graph.
+    # @notice Creates a new empty graph.
     func new_graph() -> (graph_len : felt, graph : Vertex*, adj_vertices_count : felt*):
         let (graph : Vertex*) = alloc()
         let (adj_vertices_count : felt*) = alloc()
@@ -36,7 +35,7 @@ namespace Graph:
     # @param edges : The array of edges
     # @returns graph_len : The length of the graph array
     # @returns graph : The graph array
-    # @returns adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.  
+    # @returns adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.
     func build_directed_graph_from_edges(edges_len : felt, edges : Edge*) -> (
         graph_len : felt, graph : Vertex*, adj_vertices_count : felt*
     ):
