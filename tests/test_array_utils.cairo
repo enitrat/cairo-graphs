@@ -1,7 +1,9 @@
 %lang starknet
-from cairo_graphs.utils.array_utils import Stack, Array
+
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
+
+from cairo_graphs.utils.array_utils import Stack, Array
 
 @external
 func test_pop_stack():

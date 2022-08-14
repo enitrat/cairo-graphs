@@ -1,4 +1,5 @@
 %lang starknet
+
 from starkware.cairo.common.alloc import alloc
 
 from cairo_graphs.graph.graph import add_neighbor, Graph

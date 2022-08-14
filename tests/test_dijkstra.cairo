@@ -1,5 +1,5 @@
 %lang starknet
-# from cairo_graphs.graph.graph import build_graph
+
 from starkware.cairo.common.alloc import alloc
 
 from cairo_graphs.graph.graph import Graph
