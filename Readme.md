@@ -28,7 +28,7 @@ So a graph is essentially represented by 2 data structures :
 
 ### Create a graph
 
-To create a graph, import the `Graph` from `src.graph.graph` that exposes several methods :
+To create a graph, import the `Graph` from `cairo_graphs.graph.graph` that exposes several methods :
 
 - `new_graph` returns an empty graph that you can fill manually
 - `build_undirected_graph_from_edges` : Given an array of Edges (Represented by a src_identifier, dst_identifier and weight), returns an undirected graph built from the edges.
@@ -47,7 +47,7 @@ You can for example simply call `build_directed_graph_from_edges(edges_len,edges
 ### Graph algorithms
 
 For now, only the Dijkstra algorithm is implemented. You can use it once you have built a valid graph.
-To do so, import `Dijkstra` from `src.graph.dijkstra` and call `Dijkstra.shortest_path`, which will return the distance between the two vertices as well as the path itself.
+To do so, import `Dijkstra` from `cairo_graphs.graph.dijkstra` and call `Dijkstra.shortest_path`, which will return the distance between the two vertices as well as the path itself.
 You will need to provide the actual `graph` as well as `adj_vertices_count` as parameters.
 ## Testing
 

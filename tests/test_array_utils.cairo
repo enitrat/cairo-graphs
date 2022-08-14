@@ -1,5 +1,5 @@
 %lang starknet
-from src.cairo_graphs.utils.array_utils import Stack, Array
+from cairo_graphs.utils.array_utils import Stack, Array
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 

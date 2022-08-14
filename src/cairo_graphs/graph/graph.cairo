@@ -1,8 +1,8 @@
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.math import assert_not_equal
-from src.cairo_graphs.data_types.data_types import Vertex, Edge, AdjacentVertex
-from src.cairo_graphs.utils.array_utils import Array
+from cairo_graphs.data_types.data_types import Vertex, Edge, AdjacentVertex
+from cairo_graphs.utils.array_utils import Array
 
 # # Adjancency list graph implementation
 

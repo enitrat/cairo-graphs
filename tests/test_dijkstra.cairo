@@ -1,11 +1,11 @@
 %lang starknet
-# from src.cairo_graphs.graph.graph import build_graph
+# from cairo_graphs.graph.graph import build_graph
 from starkware.cairo.common.alloc import alloc
 
-from src.cairo_graphs.graph.graph import Graph
-from src.cairo_graphs.data_types.data_types import Edge
-from src.cairo_graphs.graph.dijkstra import Dijkstra
-from src.cairo_graphs.data_types.data_types import Vertex
+from cairo_graphs.graph.graph import Graph
+from cairo_graphs.data_types.data_types import Edge
+from cairo_graphs.graph.dijkstra import Dijkstra
+from cairo_graphs.data_types.data_types import Vertex
 
 func before_undirected_weighted() -> (
     graph_len : felt, graph : Vertex*, adj_vertices_count : felt*

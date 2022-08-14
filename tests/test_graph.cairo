@@ -1,8 +1,8 @@
 %lang starknet
 from starkware.cairo.common.alloc import alloc
 
-from src.cairo_graphs.graph.graph import add_neighbor, Graph
-from src.cairo_graphs.data_types.data_types import Edge, Vertex, AdjacentVertex
+from cairo_graphs.graph.graph import add_neighbor, Graph
+from cairo_graphs.data_types.data_types import Edge, Vertex, AdjacentVertex
 
 const TOKEN_A = 123
 const TOKEN_B = 456

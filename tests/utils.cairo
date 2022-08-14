@@ -1,5 +1,5 @@
-from src.cairo_graphs.data_types.data_types import Edge, Vertex
-from src.cairo_graphs.graph.graph import Graph
+from cairo_graphs.data_types.data_types import Edge, Vertex
+from cairo_graphs.graph.graph import Graph
 
 # @notice internal function to build the graph recursively
 # @dev
