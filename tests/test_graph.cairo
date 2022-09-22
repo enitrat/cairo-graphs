@@ -136,6 +136,43 @@ func test_build_graph_undirected() {
     let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(
         3, input_data
     );
+    
+    assert graph_len = 3;
+    assert graph[0].identifier = TOKEN_A;
+    assert graph[1].identifier = TOKEN_B;
+    assert graph[2].identifier = TOKEN_C;
+    assert adj_vertices_count[0] = 2;
+    assert adj_vertices_count[1] = 2;
+    assert adj_vertices_count[2] = 2;
+    return ();
+}
+
+@external
+func test_generate_graphviz() {
+    alloc_locals;
+    let input_data: Edge* = alloc();
+    assert input_data[0] = Edge(TOKEN_A, TOKEN_B, 1);
+    assert input_data[1] = Edge(TOKEN_A, TOKEN_C, 1);
+    assert input_data[2] = Edge(TOKEN_B, TOKEN_C, 1);
+
+    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(
+        3, input_data
+    );
+
+    %{
+        IDENTIFIER_INDEX = 1
+        ADJACENT_VERTICES_INDEX = 2
+        for i in range(ids.graph_len):
+            neighbours_len = memory[ids.adj_vertices_count+i]
+            vertex_id = memory[ids.graph.address_+i*ids.Vertex.SIZE+IDENTIFIER_INDEX]
+            adjacent_vertices_pointer = memory[ids.graph.address_+i*ids.Vertex.SIZE+ADJACENT_VERTICES_INDEX]
+            print(f"{vertex_id} -> {{",end='')
+            for j in range (neighbours_len):
+                adjacent_vertex = memory[adjacent_vertices_pointer+j*ids.AdjacentVertex.SIZE+IDENTIFIER_INDEX]
+                print(f"{adjacent_vertex} ",end='')
+            print('}',end='')
+            print()
+    %}
 
     assert graph_len = 3;
     assert graph[0].identifier = TOKEN_A;
