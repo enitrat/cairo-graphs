@@ -5,8 +5,8 @@ from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.dict import dict_write, dict_read
 
-from cairo_graphs.data_types.data_types import Vertex
-from cairo_graphs.graph.graph import Graph
+from cairo_graphs.data_types.data_types import Vertex, Graph
+from cairo_graphs.graph.graph import GraphMethods
 from cairo_graphs.utils.array_utils import Array
 
 const MAX_FELT = 2 ** 251 - 1;
@@ -43,12 +43,14 @@ namespace Dijkstra {
     // @param graph the graph
     // @param adjacent_vertices_count the number of adjacent vertices for each vertex.
     // @param start_vertex the starting vertex of the algorithm
-    func run{range_check_ptr}(
-        graph_len: felt, graph: Vertex*, adjacent_vertices_count: felt*, start_identifier: felt
-    ) -> (graph_len: felt, predecessors: felt*, distances: felt*) {
+    func run{range_check_ptr}(graph: Graph, start_identifier: felt) -> (
+        graph_len: felt, predecessors: felt*, distances: felt*
+    ) {
         alloc_locals;
 
-        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_identifier);
+        let start_vertex_index = GraphMethods.get_vertex_index{
+            graph=graph, identifier=start_identifier
+        }(0);
 
         //
         // Data structures
@@ -69,43 +71,47 @@ namespace Dijkstra {
         let (dict_ptr: DictAccess*) = init_dict();
         tempvar dict_ptr_start = dict_ptr;
         // Set all initial distances to MAX_FELT
-        set_array_to_max_felt(graph_len, distances);
+        set_array_to_max_felt(graph.graph_len, distances);
         // predecessor = max_felt means that there is no predecessor
-        set_array_to_max_felt(graph_len, predecessors);
+        set_array_to_max_felt(graph.graph_len, predecessors);
         // Set initial node as visited : pushed in the visited vertices, updates its value in the dict.
         let (grey_vertices_len) = DijkstraUtils.set_visited{dict_ptr=dict_ptr}(
             start_vertex_index, 0, grey_vertices
         );
         // Set initial vertex distance to 0
-        let (distances) = DijkstraUtils.set_distance(start_vertex_index, graph_len, distances, 0);
+        let (distances) = DijkstraUtils.set_distance(
+            start_vertex_index, graph.graph_len, distances, 0
+        );
 
+        // cant use the values as implicit args without binding them to an identifier
+        let graph_len = graph.graph_len;
+        let vertices = graph.vertices;
+        let adj_v_count = graph.adjacent_vertices_count;
         let (predecessors, distances) = visit_grey_vertices{
             dict_ptr=dict_ptr,
             range_check_ptr=range_check_ptr,
             graph_len=graph_len,
-            graph=graph,
-            adjacent_vertices_count=adjacent_vertices_count,
+            graph=vertices,
+            adjacent_vertices_count=adj_v_count,
         }(predecessors, distances, grey_vertices_len, grey_vertices);
 
         default_dict_finalize(dict_ptr_start, dict_ptr, 0);
 
-        return (graph_len, predecessors, distances);
+        return (graph.graph_len, predecessors, distances);
     }
 
     func shortest_path{range_check_ptr}(
-        graph_len: felt,
-        graph: Vertex*,
-        adjacent_vertices_count: felt*,
-        start_vertex_id: felt,
-        end_vertex_id: felt,
+        graph: Graph, start_vertex_id: felt, end_vertex_id: felt
     ) -> (path_len: felt, path: felt*, distance: felt) {
         alloc_locals;
-        let (graph_len, predecessors, distances) = run(
-            graph_len, graph, adjacent_vertices_count, start_vertex_id
-        );
+        let (graph_len, predecessors, distances) = run(graph, start_vertex_id);
 
-        let (end_vertex_index) = Graph.get_vertex_index(graph_len, graph, end_vertex_id);
-        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_vertex_id);
+        let end_vertex_index = GraphMethods.get_vertex_index{graph=graph, identifier=end_vertex_id}(
+            0
+        );
+        let start_vertex_index = GraphMethods.get_vertex_index{
+            graph=graph, identifier=start_vertex_id
+        }(0);
 
         let (shortest_path_indexes: felt*) = alloc();
         let total_distance = distances[end_vertex_index];
@@ -114,9 +120,11 @@ namespace Dijkstra {
         // and store the path in an array
         // TODO optimize these steps.
         assert [shortest_path_indexes] = end_vertex_index;
+        let vertices = graph.vertices;
+        let graph_len = graph.graph_len;
         let (shortest_path_len) = build_shortest_path{
             graph_len=graph_len,
-            graph=graph,
+            graph=vertices,
             predecessors=predecessors,
             start_vertex_index=start_vertex_index,
         }(
@@ -128,7 +136,7 @@ namespace Dijkstra {
         let (correct_order_path) = Array.inverse(shortest_path_len, shortest_path_indexes);
         // stores the token addresses instead of the graph indexes in the path
         let (identifiers: felt*) = alloc();
-        get_identifiers_from_indexes(graph, shortest_path_len, correct_order_path, identifiers);
+        get_identifiers_from_indexes(graph.vertices, shortest_path_len, correct_order_path, identifiers);
 
         return (shortest_path_len, identifiers, total_distance);
     }
@@ -271,7 +279,7 @@ func build_shortest_path{
 
 // @notice Returns an array composed by graph identifiers instead of graph indexes.
 func get_identifiers_from_indexes(
-    graph: Vertex*, source_array_len: felt, source_array: felt*, res: felt*
+    vertices: Vertex*, source_array_len: felt, source_array: felt*, res: felt*
 ) -> (identifiers_predecessors: felt*) {
     alloc_locals;
     if (source_array_len == 0) {
@@ -283,11 +291,11 @@ func get_identifiers_from_indexes(
     if (current_vertex_index == MAX_FELT) {
         assert res[source_array_len - 1] = MAX_FELT;
     } else {
-        assert res[source_array_len - 1] = graph[current_vertex_index].identifier;
+        assert res[source_array_len - 1] = vertices[current_vertex_index].identifier;
     }
 
     return get_identifiers_from_indexes(
-        graph=graph, source_array_len=source_array_len - 1, source_array=source_array, res=res
+        vertices=vertices, source_array_len=source_array_len - 1, source_array=source_array, res=res
     );
 }
 

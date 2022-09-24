@@ -1,5 +1,5 @@
 from cairo_graphs.data_types.data_types import Edge, Vertex
-from cairo_graphs.graph.graph import Graph
+from cairo_graphs.graph.graph import GraphMethods
 
 // @notice internal function to build the graph recursively
 // @dev
@@ -17,11 +17,11 @@ func build_undirected_graph_from_edges(
         return (graph_len, adj_vertices_count);
     }
 
-    let (graph_len, adj_vertices_count) = Graph.add_edge(
+    let (graph_len, adj_vertices_count) = GraphMethods.add_edge(
         graph, graph_len, adj_vertices_count, [edges]
     );
 
-    let (graph_len, adj_vertices_count) = Graph.add_edge(
+    let (graph_len, adj_vertices_count) = GraphMethods.add_edge(
         graph,
         graph_len,
         adj_vertices_count,
@@ -49,7 +49,7 @@ func build_directed_graph_from_edges(
         return (graph_len, adj_vertices_count);
     }
 
-    let (graph_len, adj_vertices_count) = Graph.add_edge(
+    let (graph_len, adj_vertices_count) = GraphMethods.add_edge(
         graph, graph_len, adj_vertices_count, [edges]
     );
 
