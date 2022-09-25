@@ -2,12 +2,11 @@
 
 from starkware.cairo.common.alloc import alloc
 
-from cairo_graphs.graph.graph import Graph
-from cairo_graphs.data_types.data_types import Edge
+from cairo_graphs.graph.graph import GraphMethods
 from cairo_graphs.graph.dijkstra import Dijkstra
-from cairo_graphs.data_types.data_types import Vertex
+from cairo_graphs.data_types.data_types import Vertex, Graph, Edge
 
-func before_undirected_weighted() -> (graph_len: felt, graph: Vertex*, adj_vertices_count: felt*) {
+func before_undirected_weighted() -> Graph {
     alloc_locals;
     let input_data: Edge* = alloc();
     assert input_data[0] = Edge(1, 2, 1);
@@ -23,13 +22,13 @@ func before_undirected_weighted() -> (graph_len: felt, graph: Vertex*, adj_verti
     assert input_data[10] = Edge(8, 9, 1);
     assert input_data[11] = Edge(12, 9, 1);
 
-    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(
+    let graph = GraphMethods.build_undirected_graph_from_edges(
         12, input_data
     );
-    return (graph_len, graph, adj_vertices_count);
+    return graph;
 }
 
-func before_directed_weighted() -> (graph_len: felt, graph: Vertex*, adj_vertices_count: felt*) {
+func before_directed_weighted() -> Graph {
     alloc_locals;
     let input_data: Edge* = alloc();
 
@@ -55,21 +54,20 @@ func before_directed_weighted() -> (graph_len: felt, graph: Vertex*, adj_vertice
     assert input_data[9] = Edge(9, 5, 1);
     assert input_data[10] = Edge(12, 7, 1);
 
-    let (graph_len, graph, adj_vertices_count) = Graph.build_directed_graph_from_edges(
+    let graph = GraphMethods.build_directed_graph_from_edges(
         11, input_data
     );
-    return (graph_len, graph, adj_vertices_count);
+    return graph;
 }
 
 @external
 func test_dijkstra_undirected_weighted{range_check_ptr}() {
     alloc_locals;
-    let (graph_len, graph, adj_vertices_count) = before_undirected_weighted();
+    let graph = before_undirected_weighted();
 
     // Test 1 : from 1 to 9
-
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=9
+        graph, start_vertex_id=1, end_vertex_id=9
     );
 
     assert path_len = 7;
@@ -85,7 +83,7 @@ func test_dijkstra_undirected_weighted{range_check_ptr}() {
     // Test 1 : from 8 to 7
 
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=8, end_vertex_id=7
+        graph, start_vertex_id=8, end_vertex_id=7
     );
 
     assert path_len = 4;
@@ -100,12 +98,12 @@ func test_dijkstra_undirected_weighted{range_check_ptr}() {
 @external
 func test_dijkstra_directed_weighted{range_check_ptr}() {
     alloc_locals;
-    let (graph_len, local graph, adj_vertices_count) = before_directed_weighted();
+    let graph = before_directed_weighted();
 
     // Test 1 : from 1 to 5
 
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=5
+        graph, start_vertex_id=1, end_vertex_id=5
     );
 
     assert path_len = 6;
@@ -119,7 +117,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}() {
 
     // Test 2 : from 5 to 1 is different than 1 to 5
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=5, end_vertex_id=1
+        graph, start_vertex_id=5, end_vertex_id=1
     );
 
     assert path_len = 2;
@@ -129,7 +127,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}() {
 
     // Test 3 : from 1 to 12 is unreachable
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=1, end_vertex_id=12
+        graph, start_vertex_id=1, end_vertex_id=12
     );
 
     assert path_len = 0;
@@ -137,7 +135,7 @@ func test_dijkstra_directed_weighted{range_check_ptr}() {
 
     // Test 3 : from 12 to 1 is reachable
     let (path_len, path, distance) = Dijkstra.shortest_path(
-        graph_len, graph, adj_vertices_count, start_vertex_id=12, end_vertex_id=1
+        graph, start_vertex_id=12, end_vertex_id=1
     );
 
     assert path_len = 3;

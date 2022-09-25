@@ -1,34 +1,38 @@
 # Cairo-graphs: A graph library in Cairo
 
-## Introduction [WIP]
+## Introduction
 
 Cairo-Graphs is a graph library written in Cairo that allows you to create and interact with graphs, entirely in Cairo, without state persistence.
 
 ## Graph implementation
 
 The graph is implemented as an array of `Vertex`. A vertex is composed of three elements :
+
 - Its index in the graph array.
 - Its identifier (it can be a token address, a hash, a number, a string, etc.)
 - An array of adjacent vertices.
 
 Since the memory is immutable in cairo, I had to make a choice when building the graph.
-Since I store in each vertex an array containing the neighboring vertices, I had to track how many neighbors each vertex had (`adj_vertices_count[i]`).
+Since I store in each vertex an array containing the neighboring vertices, I had to track how many neighbors each vertex had (`adjacent_vertices_count[i]`).
 But since the memory is immutable in cairo, to avoid having complex operations requiring rebuilding the whole graph on each change
 I introduced an external array that tracks how many neighbors each vertex has.
-That way, when I add a neighbor to a vertex, I can just append it to the `adj_vertices` array of the current vertex, and I can update the number of neighbors it has by
-rebuilding the `adj_vertices_count` array.
+That way, when I add a neighbor to a vertex, I can just append it to the `adjacent_vertices_count` array of the current vertex, and I can update the number of neighbors it has by
+rebuilding the `adjacent_vertices_count` array.
 
 This implementation is probably not the most efficient, and one should expect modifications -
 I have to study the benefits of using another data structure, for example, a dict, to track how many neighbors each vertex has.
 
-So a graph is essentially represented by 2 data structures :
--  `graph`, an array of vertices.
--  `adj_vertices_count`, an array of integers, tracking how many neighbors each vertex has.
+Here is how the Graph struct is built :
+
+- a member length tracks the amount of vertices
+- a member `vertices` represents the array of vertices.
+- a member `adj_vertices_count`, an array of integers, tracks how many neighbors each vertex has.
+
 ## How to use it
 
 ### Create a graph
 
-To create a graph, import the `Graph` from `cairo_graphs.graph.graph` that exposes several methods :
+To create a graph, import the `GraphMethods` namespace from `cairo_graphs.graph.graph` that exposes several methods :
 
 - `new_graph` returns an empty graph that you can fill manually
 - `build_undirected_graph_from_edges` : Given an array of Edges (Represented by a src_identifier, dst_identifier and weight), returns an undirected graph built from the edges.
@@ -46,9 +50,14 @@ You can for example simply call `build_directed_graph_from_edges(edges_len,edges
 
 ### Graph algorithms
 
-For now, only the Dijkstra algorithm is implemented. You can use it once you have built a valid graph.
-To do so, import `Dijkstra` from `cairo_graphs.graph.dijkstra` and call `Dijkstra.shortest_path`, which will return the distance between the two vertices as well as the path itself.
-You will need to provide the actual `graph` as well as `adj_vertices_count` as parameters.
+For now, two algorithms are implemented :
+
+- The Dijkstra algorithm. You can use it once you have built a valid graph.
+  To do so, import `Dijkstra` from `cairo_graphs.graph.dijkstra` and call `Dijkstra.shortest_path`, which will return the distance between the two vertices as well as the path itself.
+  You will need to provide the actual `graph` as parameter.
+- A DFS algorithm that returns all the possible paths to go from a vertex A to a vertex B given a maximum number of hops.
+  The lower the number of hops allowed, the less computing-intensive the algorithm will be.
+
 ## Testing
 
 To run the tests, install protostar and run :

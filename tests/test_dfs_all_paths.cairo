@@ -2,7 +2,7 @@
 
 from starkware.cairo.common.alloc import alloc
 
-from cairo_graphs.graph.graph import Graph
+from cairo_graphs.graph.graph import GraphMethods
 from cairo_graphs.data_types.data_types import Edge, Vertex
 from cairo_graphs.graph.dfs_all_paths import init_dfs
 
@@ -18,8 +18,8 @@ func test_dfs{range_check_ptr}() {
     assert edges[1] = Edge(TOKEN_A, TOKEN_C, 1);
     assert edges[2] = Edge(TOKEN_B, TOKEN_C, 1);
 
-    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(3, edges);
-    assert graph_len = 3;
+    let graph = GraphMethods.build_undirected_graph_from_edges(3, edges);
+    assert graph.length = 3;
 
     // graph is [vertex_a,vertex_b,noce_c]
     // neighbors : [2,2,2]
@@ -27,9 +27,7 @@ func test_dfs{range_check_ptr}() {
     // then we pop back to vertex_a and find vertex_a -> vertex_b => save_path
     // so we have 2 possible paths.
     // The length of the saved_paths array is : 1(length of path_1) + path_1_len + 1(length of path_2) + path_2_len = 1+3+2+1 = 7
-    let (saved_paths_len, saved_paths) = init_dfs(
-        graph_len, graph, adj_vertices_count, TOKEN_A, TOKEN_B, 4
-    );
+    let (saved_paths_len, saved_paths) = init_dfs(graph, TOKEN_A, TOKEN_B, 4);
     // %{
     //     print(ids.saved_paths_len)
     //     for i in range(ids.saved_paths_len):
@@ -64,11 +62,9 @@ func test_dfs_2{range_check_ptr}() {
     // so we have 3 possible paths.
     // The length of the saved_paths array is 1 + 2 + 1 + 4 + 1 + 3 = 12
 
-    let (graph_len, graph, adj_vertices_count) = Graph.build_undirected_graph_from_edges(5, edges);
+    let graph = GraphMethods.build_undirected_graph_from_edges(5, edges);
 
-    let (saved_paths_len, saved_paths) = init_dfs(
-        graph_len, graph, adj_vertices_count, TOKEN_A, TOKEN_C, 4
-    );
+    let (saved_paths_len, saved_paths) = init_dfs(graph, TOKEN_A, TOKEN_C, 4);
     // %{
     //     print(ids.saved_paths_len)
     //     for i in range(ids.saved_paths_len):

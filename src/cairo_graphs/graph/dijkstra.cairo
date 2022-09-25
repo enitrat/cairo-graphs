@@ -5,8 +5,8 @@ from starkware.cairo.common.math_cmp import is_le_felt
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.dict import dict_write, dict_read
 
-from cairo_graphs.data_types.data_types import Vertex
-from cairo_graphs.graph.graph import Graph
+from cairo_graphs.data_types.data_types import Vertex, Graph
+from cairo_graphs.graph.graph import GraphMethods
 from cairo_graphs.utils.array_utils import Array
 
 const MAX_FELT = 2 ** 251 - 1;
@@ -16,7 +16,7 @@ const MAX_FELT = 2 ** 251 - 1;
 // Visited vertices = grey vertices. It means that they have been visited once, but they are not in their final state yet.
 // Finished vertices = black vertices. It means that we have found the shortest path to them.
 
-// @notice creates a new dictionary.
+// @notice creates a new dictionary with a default value set to 0.
 func init_dict() -> (dict_ptr: DictAccess*) {
     alloc_locals;
 
@@ -39,16 +39,16 @@ func set_array_to_max_felt(remaining_len: felt, current_index: felt*) {
 namespace Dijkstra {
     // @notice starts a Dijkstra algorith to find the shortest path from the source to the destination vertex.
     // @dev only works if all weights are positive.
-    // @param graph_len the number of vertices in the graph
     // @param graph the graph
-    // @param adjacent_vertices_count the number of adjacent vertices for each vertex.
-    // @param start_vertex the starting vertex of the algorithm
-    func run{range_check_ptr}(
-        graph_len: felt, graph: Vertex*, adjacent_vertices_count: felt*, start_identifier: felt
-    ) -> (graph_len: felt, predecessors: felt*, distances: felt*) {
+    // @param start_identifier identifier of the starting vertex of the algorithm
+    func run{range_check_ptr}(graph: Graph, start_identifier: felt) -> (
+        graph: Graph, predecessors: felt*, distances: felt*
+    ) {
         alloc_locals;
 
-        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_identifier);
+        let start_vertex_index = GraphMethods.get_vertex_index{
+            graph=graph, identifier=start_identifier
+        }(0);
 
         //
         // Data structures
@@ -69,43 +69,40 @@ namespace Dijkstra {
         let (dict_ptr: DictAccess*) = init_dict();
         tempvar dict_ptr_start = dict_ptr;
         // Set all initial distances to MAX_FELT
-        set_array_to_max_felt(graph_len, distances);
+        set_array_to_max_felt(graph.length, distances);
         // predecessor = max_felt means that there is no predecessor
-        set_array_to_max_felt(graph_len, predecessors);
+        set_array_to_max_felt(graph.length, predecessors);
         // Set initial node as visited : pushed in the visited vertices, updates its value in the dict.
         let (grey_vertices_len) = DijkstraUtils.set_visited{dict_ptr=dict_ptr}(
             start_vertex_index, 0, grey_vertices
         );
         // Set initial vertex distance to 0
-        let (distances) = DijkstraUtils.set_distance(start_vertex_index, graph_len, distances, 0);
+        let (distances) = DijkstraUtils.set_distance(
+            start_vertex_index, graph.length, distances, 0
+        );
 
+        // cant use the values as implicit args without binding them to an identifier
         let (predecessors, distances) = visit_grey_vertices{
-            dict_ptr=dict_ptr,
-            range_check_ptr=range_check_ptr,
-            graph_len=graph_len,
-            graph=graph,
-            adjacent_vertices_count=adjacent_vertices_count,
+            dict_ptr=dict_ptr, range_check_ptr=range_check_ptr, graph=graph
         }(predecessors, distances, grey_vertices_len, grey_vertices);
 
         default_dict_finalize(dict_ptr_start, dict_ptr, 0);
 
-        return (graph_len, predecessors, distances);
+        return (graph, predecessors, distances);
     }
 
     func shortest_path{range_check_ptr}(
-        graph_len: felt,
-        graph: Vertex*,
-        adjacent_vertices_count: felt*,
-        start_vertex_id: felt,
-        end_vertex_id: felt,
+        graph: Graph, start_vertex_id: felt, end_vertex_id: felt
     ) -> (path_len: felt, path: felt*, distance: felt) {
         alloc_locals;
-        let (graph_len, predecessors, distances) = run(
-            graph_len, graph, adjacent_vertices_count, start_vertex_id
-        );
+        let (graph, predecessors, distances) = run(graph, start_vertex_id);
 
-        let (end_vertex_index) = Graph.get_vertex_index(graph_len, graph, end_vertex_id);
-        let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_vertex_id);
+        let end_vertex_index = GraphMethods.get_vertex_index{graph=graph, identifier=end_vertex_id}(
+            0
+        );
+        let start_vertex_index = GraphMethods.get_vertex_index{
+            graph=graph, identifier=start_vertex_id
+        }(0);
 
         let (shortest_path_indexes: felt*) = alloc();
         let total_distance = distances[end_vertex_index];
@@ -115,7 +112,6 @@ namespace Dijkstra {
         // TODO optimize these steps.
         assert [shortest_path_indexes] = end_vertex_index;
         let (shortest_path_len) = build_shortest_path{
-            graph_len=graph_len,
             graph=graph,
             predecessors=predecessors,
             start_vertex_index=start_vertex_index,
@@ -128,25 +124,21 @@ namespace Dijkstra {
         let (correct_order_path) = Array.inverse(shortest_path_len, shortest_path_indexes);
         // stores the token addresses instead of the graph indexes in the path
         let (identifiers: felt*) = alloc();
-        get_identifiers_from_indexes(graph, shortest_path_len, correct_order_path, identifiers);
+        get_identifiers_from_indexes(
+            graph.vertices, shortest_path_len, correct_order_path, identifiers
+        );
 
         return (shortest_path_len, identifiers, total_distance);
     }
 }
 
-func visit_grey_vertices{
-    dict_ptr: DictAccess*,
-    range_check_ptr,
-    graph_len,
-    graph: Vertex*,
-    adjacent_vertices_count: felt*,
-}(predecessors: felt*, distances: felt*, grey_vertices_len: felt, grey_vertices: felt*) -> (
-    predecessors: felt*, distances: felt*
-) {
+func visit_grey_vertices{dict_ptr: DictAccess*, range_check_ptr, graph: Graph}(
+    predecessors: felt*, distances: felt*, grey_vertices_len: felt, grey_vertices: felt*
+) -> (predecessors: felt*, distances: felt*) {
     alloc_locals;
 
     let (closest_distance, closest_vertex_index) = DijkstraUtils.get_closest_visited_vertex(
-        graph_len, distances, grey_vertices_len, grey_vertices, MAX_FELT, MAX_FELT
+        graph.length, distances, grey_vertices_len, grey_vertices, MAX_FELT, MAX_FELT
     );
 
     if (closest_distance == MAX_FELT) {
@@ -154,14 +146,11 @@ func visit_grey_vertices{
         // done, it means that there are no more grey vertices pending.
     }
 
-    let current_vertex = graph[closest_vertex_index];
-    let nb_adj_vertices = adjacent_vertices_count[closest_vertex_index];
-
+    let current_vertex = graph.vertices[closest_vertex_index];
+    let nb_adj_vertices = graph.adjacent_vertices_count[closest_vertex_index];
     let (predecessors, distances) = visit_successors{
         dict_ptr=dict_ptr,
-        graph_len=graph_len,
         graph=graph,
-        adjacent_vertices_count=adjacent_vertices_count,
         grey_vertices_len=grey_vertices_len,
         grey_vertices=grey_vertices,
     }(
@@ -179,13 +168,7 @@ func visit_grey_vertices{
 
 // @notice Visits the successors of a vertex.
 func visit_successors{
-    dict_ptr: DictAccess*,
-    range_check_ptr,
-    graph_len,
-    graph: Vertex*,
-    adjacent_vertices_count: felt*,
-    grey_vertices_len,
-    grey_vertices: felt*,
+    dict_ptr: DictAccess*, range_check_ptr, graph: Graph, grey_vertices_len, grey_vertices: felt*
 }(current_vertex: Vertex, successors_len: felt, predecessors: felt*, distances: felt*) -> (
     predecessors: felt*, distances: felt*
 ) {
@@ -207,7 +190,6 @@ func visit_successors{
         return visit_successors(current_vertex, successors_len - 1, predecessors, distances);
     }
 
-    // let (predecessors, distances) = relax_edge(current_vertex, successor, weight)
     relax_edge{predecessors=predecessors, distances=distances}(current_vertex, successor, weight);
 
     let (is_not_visited) = DijkstraUtils.is_not_visited(successor.index);
@@ -227,16 +209,18 @@ func visit_successors{
 }
 
 func relax_edge{
-    dict_ptr: DictAccess*, graph_len: felt, predecessors: felt*, distances: felt*, range_check_ptr
+    dict_ptr: DictAccess*, graph: Graph, predecessors: felt*, distances: felt*, range_check_ptr
 }(src: Vertex, dst: Vertex, weight: felt) {
     alloc_locals;
     let current_disctance = distances[dst.index];
     let new_distance = distances[src.index] + weight;
     let is_new_distance_better = is_le_felt(new_distance, current_disctance);
     if (is_new_distance_better == 1) {
-        let (distances) = DijkstraUtils.set_distance(dst.index, graph_len, distances, new_distance);
+        let (distances) = DijkstraUtils.set_distance(
+            dst.index, graph.length, distances, new_distance
+        );
         let (predecessors) = DijkstraUtils.set_predecessor(
-            dst.index, graph_len, predecessors, src.index
+            dst.index, graph.length, predecessors, src.index
         );
         return ();
     }
@@ -245,11 +229,12 @@ func relax_edge{
 
 // @notice: This function is called recursively. It reads the predecessor from the current vertex and
 // stores it in the path array.
-// @param currrent_vertex : currently analysed vertex.
+// @param currrent_vertex_index : currently analysed vertex index.
 // @param shortest_path_len : length of the array that holds the path.
-// @param shortest_path_indexes : array that holds the indexes of the vertices in the shortes path..
+// @param shortest_path_indexes : array that holds the indexes of the vertices in the shortes path.
+// @returns shortest_path_len : length of the array that holds the shortest path.
 func build_shortest_path{
-    graph_len: felt, graph: Vertex*, predecessors: felt*, start_vertex_index: felt
+    graph:Graph, predecessors: felt*, start_vertex_index: felt
 }(current_vertex_index: felt, shortest_path_len: felt, shortest_path_indexes: felt*) -> (
     shortest_path_len: felt
 ) {
@@ -263,7 +248,7 @@ func build_shortest_path{
     }
 
     return build_shortest_path(
-        current_vertex_index=graph[prev_vertex_index].index,
+        current_vertex_index=graph.vertices[prev_vertex_index].index,
         shortest_path_len=shortest_path_len + 1,
         shortest_path_indexes=shortest_path_indexes + 1,
     );
@@ -271,7 +256,7 @@ func build_shortest_path{
 
 // @notice Returns an array composed by graph identifiers instead of graph indexes.
 func get_identifiers_from_indexes(
-    graph: Vertex*, source_array_len: felt, source_array: felt*, res: felt*
+    vertices: Vertex*, source_array_len: felt, source_array: felt*, res: felt*
 ) -> (identifiers_predecessors: felt*) {
     alloc_locals;
     if (source_array_len == 0) {
@@ -283,11 +268,11 @@ func get_identifiers_from_indexes(
     if (current_vertex_index == MAX_FELT) {
         assert res[source_array_len - 1] = MAX_FELT;
     } else {
-        assert res[source_array_len - 1] = graph[current_vertex_index].identifier;
+        assert res[source_array_len - 1] = vertices[current_vertex_index].identifier;
     }
 
     return get_identifiers_from_indexes(
-        graph=graph, source_array_len=source_array_len - 1, source_array=source_array, res=res
+        vertices=vertices, source_array_len=source_array_len - 1, source_array=source_array, res=res
     );
 }
 

@@ -19,3 +19,9 @@ struct AdjacentVertex {
     dst: Vertex,
     weight: felt,
 }
+
+struct Graph {
+    length:felt,
+    vertices: Vertex*,
+    adjacent_vertices_count: felt*,
+}

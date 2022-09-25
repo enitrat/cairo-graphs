@@ -5,8 +5,8 @@ from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.memcpy import memcpy
 from starkware.cairo.common.dict import dict_write, dict_update, dict_read
 
-from cairo_graphs.data_types.data_types import Edge, Vertex
-from cairo_graphs.graph.graph import Graph
+from cairo_graphs.data_types.data_types import Edge, Vertex, Graph
+from cairo_graphs.graph.graph import GraphMethods
 from cairo_graphs.utils.array_utils import Stack
 
 const MAX_FELT = 2 ** 251 - 1;
@@ -21,27 +21,22 @@ func init_dict() -> (dict_ptr: DictAccess*) {
 }
 
 func init_dfs{range_check_ptr}(
-    graph_len: felt,
-    graph: Vertex*,
-    adj_vertices_count: felt*,
-    start_identifier: felt,
-    dst_identifier: felt,
-    max_hops: felt,
+    graph: Graph, start_identifier: felt, dst_identifier: felt, max_hops: felt
 ) -> (saved_paths_len: felt, saved_paths: felt*) {
     alloc_locals;
     let (dict_ptr: DictAccess*) = init_dict();
     let (saved_paths: felt*) = alloc();
     let (current_path: felt*) = alloc();
 
-    let (start_vertex_index) = Graph.get_vertex_index(graph_len, graph, start_identifier);
-    let (dst_vertex_index) = Graph.get_vertex_index(graph_len, graph, dst_identifier);
+    let start_vertex_index = GraphMethods.get_vertex_index{
+        graph=graph, identifier=start_identifier
+    }(0);
+    let dst_vertex_index = GraphMethods.get_vertex_index{graph=graph, identifier=dst_identifier}(0);
 
     let (saved_paths_len, _, _) = DFS_rec{dict_ptr=dict_ptr}(
-        graph_len=graph_len,
         graph=graph,
-        adj_vertices_count=adj_vertices_count,
-        current_node=graph[start_vertex_index],
-        destination_node=graph[dst_vertex_index],
+        current_node=graph.vertices[start_vertex_index],
+        destination_node=graph.vertices[dst_vertex_index],
         max_hops=max_hops,
         current_path_len=0,
         current_path=current_path,
@@ -49,18 +44,16 @@ func init_dfs{range_check_ptr}(
         saved_paths=saved_paths,
     );
 
-    // stores the token addresses instead of the indexes in the path
-    let (token_paths: felt*) = alloc();
-    get_tokens_from_path(
-        graph_len, graph, saved_paths_len, saved_paths, current_index=0, token_paths=token_paths
+    // stores the identifiers instead of the indexes in the path
+    let (identifiers_path: felt*) = alloc();
+    get_identifiers_from_path(
+        graph, saved_paths_len, saved_paths, current_index=0, identifiers_path=identifiers_path
     );
-    return (saved_paths_len, token_paths);
+    return (saved_paths_len, identifiers_path);
 }
 
 func DFS_rec{dict_ptr: DictAccess*, range_check_ptr}(
-    graph_len: felt,
-    graph: Vertex*,
-    adj_vertices_count: felt*,
+    graph: Graph,
     current_node: Vertex,
     destination_node: Vertex,
     max_hops: felt,
@@ -101,13 +94,11 @@ func DFS_rec{dict_ptr: DictAccess*, range_check_ptr}(
     let (saved_paths_len, current_path_len, current_path, _, _) = visit_successors{
         dict_ptr=dict_ptr
     }(
-        graph_len=graph_len,
         graph=graph,
-        adj_vertices_count=adj_vertices_count,
         current_node=current_node,
         destination_node=destination_node,
         remaining_hops=max_hops,
-        successors_len=adj_vertices_count[current_node.index],
+        successors_len=graph.adjacent_vertices_count[current_node.index],
         current_path_len=current_path_len,
         current_path=current_path,
         saved_paths_len=saved_paths_len,
@@ -117,9 +108,7 @@ func DFS_rec{dict_ptr: DictAccess*, range_check_ptr}(
 }
 
 func visit_successors{dict_ptr: DictAccess*, range_check_ptr}(
-    graph_len: felt,
-    graph: Vertex*,
-    adj_vertices_count: felt*,
+    graph: Graph,
     current_node: Vertex,
     destination_node: Vertex,
     remaining_hops: felt,
@@ -166,9 +155,7 @@ func visit_successors{dict_ptr: DictAccess*, range_check_ptr}(
     let (is_already_visited) = is_in_path(current_path_len, current_path, successor_index);
     if (is_already_visited == 1) {
         return visit_successors(
-            graph_len=graph_len,
             graph=graph,
-            adj_vertices_count=adj_vertices_count,
             current_node=current_node,
             destination_node=destination_node,
             remaining_hops=remaining_hops,
@@ -180,8 +167,11 @@ func visit_successors{dict_ptr: DictAccess*, range_check_ptr}(
         );
     }
 
+    //
     // Go deeper in the recursion (do DFSrec from current node)
+    //
 
+    
     let (successor_visit_state) = dict_read{dict_ptr=dict_ptr}(key=successor_index);
 
     local saved_paths_len_updated: felt;
@@ -192,9 +182,7 @@ func visit_successors{dict_ptr: DictAccess*, range_check_ptr}(
     if (is_state_1_or_0 == 1) {
         // assert current_path[current_path_len] = successor_index
         let (saved_paths_len, current_path_len, current_path) = DFS_rec(
-            graph_len=graph_len,
             graph=graph,
-            adj_vertices_count=adj_vertices_count,
             current_node=successor,
             destination_node=destination_node,
             max_hops=remaining_hops - 1,
@@ -219,9 +207,7 @@ func visit_successors{dict_ptr: DictAccess*, range_check_ptr}(
     // Visit next successor (decrement successors_len)
 
     return visit_successors(
-        graph_len=graph_len,
         graph=graph,
-        adj_vertices_count=adj_vertices_count,
         current_node=current_node,
         destination_node=destination_node,
         remaining_hops=remaining_hops,
@@ -257,47 +243,44 @@ func save_path(
     return (new_saved_paths_len,);
 }
 
-// @notice Return with an array composed by (path_len,path) subarrays identified by token addresses.
-func get_tokens_from_path(
-    graph_len: felt,
-    graph: Vertex*,
+// @notice Return with an array composed by (path_len,path) subarrays identified by identifiers.
+func get_identifiers_from_path(
+    graph: Graph,
     saved_paths_len: felt,
     saved_paths: felt*,
     current_index: felt,
-    token_paths: felt*,
+    identifiers_path: felt*,
 ) {
     if (current_index == saved_paths_len) {
         return ();
     }
     let subarray_length = saved_paths[current_index];
-    assert [token_paths] = subarray_length;
+    assert [identifiers_path] = subarray_length;
 
     parse_array_segment(
-        graph_len=graph_len,
         graph=graph,
         saved_paths=saved_paths,
         i=current_index + 1,
         j=current_index + 1 + subarray_length,
-        token_paths=token_paths + 1,
+        identifiers_path=identifiers_path + 1,
     );
-    return get_tokens_from_path(
-        graph_len=graph_len,
+    return get_identifiers_from_path(
         graph=graph,
         saved_paths_len=saved_paths_len,
         saved_paths=saved_paths,
         current_index=current_index + subarray_length + 1,
-        token_paths=token_paths + 1 + subarray_length,
+        identifiers_path=identifiers_path + 1 + subarray_length,
     );
 }
 
-// @notice parses the token addresses for all tokens between indexes i and j in the indexes array
+// @notice parses the identifiers for all vertices between indexes i and j in the indexes array
 func parse_array_segment(
-    graph_len: felt, graph: Vertex*, saved_paths: felt*, i: felt, j: felt, token_paths: felt*
+    graph: Graph, saved_paths: felt*, i: felt, j: felt, identifiers_path: felt*
 ) {
     if (i == j) {
         return ();
     }
     let index_in_graph = saved_paths[i];
-    assert [token_paths] = graph[index_in_graph].identifier;
-    return parse_array_segment(graph_len, graph, saved_paths, i + 1, j, token_paths + 1);
+    assert [identifiers_path] = graph.vertices[index_in_graph].identifier;
+    return parse_array_segment(graph, saved_paths, i + 1, j, identifiers_path + 1);
 }
