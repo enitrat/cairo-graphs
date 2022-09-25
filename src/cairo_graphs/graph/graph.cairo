@@ -19,9 +19,7 @@ namespace GraphMethods {
     // @notice Builds an undirected graph
     // @param edges_len : The length of the array of edges
     // @param edges : The array of edges
-    // @returns graph_len : The length of the graph array
-    // @returns graph : The graph array
-    // @returns adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.
+    // @returns graph : The graph built from the array of edges
     func build_undirected_graph_from_edges(edges_len: felt, edges: Edge*) -> Graph {
         alloc_locals;
         let graph = GraphMethods.new_graph();
@@ -31,9 +29,7 @@ namespace GraphMethods {
     // @notice Builds a directed graph
     // @param edges_len : The length of the array of edges
     // @param edges : The array of edges
-    // @returns graph_len : The length of the graph array
-    // @returns graph : The graph array
-    // @returns adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.
+    // @returns graph : The graph built from the array of edges
     func build_directed_graph_from_edges(edges_len: felt, edges: Edge*) -> Graph {
         let graph = GraphMethods.new_graph();
         return build_directed_graph_from_edges_internal(edges_len, edges, graph);
@@ -41,13 +37,9 @@ namespace GraphMethods {
 
     // @notice Adds an edge between two graph vertices
     // @dev if the vertices don't exist yet, adds them to the graph
-    // @param graph_len : The length of the graph
-    // @param graph : GraphMethods represented as an array of Vertices.
-    // @param adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.
-    // adj_vertices_count[i] representes the length of graph[i].adj_vertices.
+    // @param graph : The graph we're adding the edges to
     // @param edge : Edge to add to the graph. Holds the info about the src_identifier, dst_identifier and weight.
-    // @returns graph_len : The new length of the graph
-    // @returns adj_vertices_count : Updated adj_vertices_count array with updated length for adj_vertices_count[source.index]
+    // @returns the updated Graph
     func add_edge(graph: Graph, edge: Edge) -> Graph {
         alloc_locals;
         let src_identifier = edge.src_identifier;
@@ -55,7 +47,7 @@ namespace GraphMethods {
         let vertices = graph.vertices;
         let weight = edge.weight;
 
-        let graph_len = graph.graph_len;
+        let graph_len = graph.length;
         let vertices = graph.vertices;
         let adjacent_vertices_count: felt* = graph.adjacent_vertices_count;
 
@@ -66,7 +58,7 @@ namespace GraphMethods {
         // Add both vertices to the graph if they aren't already there
         if (src_vertex_index == -1) {
             let graph = add_vertex_to_graph(graph, src_identifier);
-            tempvar src_vertex_index = graph.graph_len - 1;
+            tempvar src_vertex_index = graph.length - 1;
             tempvar graph = graph;
         } else {
             tempvar src_vertex_index = src_vertex_index;
@@ -77,57 +69,49 @@ namespace GraphMethods {
 
         if (dst_vertex_index == -1) {
             let graph = add_vertex_to_graph(graph, dst_identifier);
-            tempvar dst_vertex_index = graph.graph_len - 1;
+            tempvar dst_vertex_index = graph.length - 1;
             tempvar graph = graph;
-            // tempvar graph_len = new_graph_len;
         } else {
             tempvar dst_vertex_index = dst_vertex_index;
             tempvar graph = graph;
         }
 
-        local graph_len = graph.graph_len;
-
         tempvar dst_vertex_index = dst_vertex_index;
 
         // Add the edge from src to dst to the graph, stored as an adjacent vertex in the adjacency lists of the source.
-        let (adjacent_vertices_count: felt*) = add_neighbor(
+        let res = add_neighbor(
             vertices[src_vertex_index],
             vertices[dst_vertex_index],
-            graph_len,
-            adjacent_vertices_count,
+            graph,
             src_vertex_index,
             weight,
         );
         tempvar dst_vertex_index = dst_vertex_index;
-        tempvar res: Graph = Graph(graph_len, vertices, adjacent_vertices_count);
         return res;
     }
 
-    // @notice Adds a vertex to the graph
-    // @dev Creates a new vertex stored at graph[graph_len].
-    // @param graph_len : The length of the graph
-    // @param graph : GraphMethods represented as an array of Vertices.
-    // @param adj_vertices_count : Array that tracks how many adjacent vertices each vertex has.
-    // @param identifier : Unique identifier of the vertex to add
-    // @returns graph_len : The new length of the graph
+    // @notice Adds a vertex to the graph.
+    // @dev Creates a new vertex stored at graph.vertices[graph_len].
+    // @param graph : The graph we want to add the vertex to.
+    // @param identifier : Unique identifier of the vertex to add.
+    // @returns graph_len : The updated graph.
     func add_vertex_to_graph(graph: Graph, identifier: felt) -> Graph {
         let adj_vertices: AdjacentVertex* = alloc();
-        tempvar vertex: Vertex = Vertex(graph.graph_len, identifier, adj_vertices);
-        assert graph.vertices[graph.graph_len] = vertex;
-        assert graph.adjacent_vertices_count[graph.graph_len] = 0;
-        let new_graph_len = graph.graph_len + 1;
+        tempvar vertex: Vertex = Vertex(graph.length, identifier, adj_vertices);
+        assert graph.vertices[graph.length] = vertex;
+        assert graph.adjacent_vertices_count[graph.length] = 0;
+        let new_graph_len = graph.length + 1;
         tempvar res: Graph = Graph(new_graph_len, graph.vertices, graph.adjacent_vertices_count);
         return res;
     }
 
     // @notice Recursive function returning the index of the node in the graph
-    // @param graph_len : The length of the graph
-    // @param graph : GraphMethods represented as an array of Vertices.
+    // @param graph : The graph we're working with.
     // @param identifier, The unique identifier of the vertex.
-    // @returns -1 if it's not in the graph, the index in the graph data structure otherwise
+    // @returns -1 if it's not in the graph, the index in the graph.vertices array otherwise
     func get_vertex_index{graph: Graph, identifier: felt}(current_index) -> felt {
         alloc_locals;
-        if (graph.graph_len == current_index) {
+        if (graph.length == current_index) {
             return -1;
         }
         local current_identifier: felt = graph.vertices[current_index].identifier;
@@ -149,29 +133,27 @@ namespace GraphMethods {
 func add_neighbor(
     vertex: Vertex,
     new_neighbor: Vertex,
-    graph_len: felt,
-    adj_vertices_count: felt*,
+    graph:Graph,
     vertex_index_in_graph: felt,
     weight: felt,
-) -> (adj_vertices_count: felt*) {
-    let current_count = adj_vertices_count[vertex_index_in_graph];
+) -> Graph {
+    let current_count = graph.adjacent_vertices_count[vertex_index_in_graph];
     tempvar adjacent_vertex = AdjacentVertex(new_neighbor, weight);
     assert vertex.adjacent_vertices[current_count] = adjacent_vertex;
     // update neighbors_len
     let new_count = current_count + 1;
     let (new_adj_vertices_count: felt*) = Array.update_value_at_index(
-        graph_len, adj_vertices_count, vertex_index_in_graph, new_count
+        graph.length, graph.adjacent_vertices_count, vertex_index_in_graph, new_count
     );
-    return (new_adj_vertices_count,);
+    tempvar res = Graph(graph.length, graph.vertices, new_adj_vertices_count);
+    return res;
 }
 
 // @notice internal function to build the graph recursively
 // @dev
 // @param pairs_len : The length of the pairs edges_len
 // @param edges : The edges array
-// @param graph_len : The length of the graph
 // @param graph : The graph
-// @param neighbors : The array of neighbors
 func build_undirected_graph_from_edges_internal(
     edges_len: felt, edges: Edge*, graph: Graph
 ) -> Graph {
@@ -194,9 +176,7 @@ func build_undirected_graph_from_edges_internal(
 // @dev
 // @param pairs_len : The length of the pairs array
 // @param pairs : The pairs array
-// @param graph_len : The length of the graph
 // @param graph : The graph
-// @param neighbors : The array of neighbors
 func build_directed_graph_from_edges_internal(
     edges_len: felt, edges: Edge*, graph: Graph
 ) -> Graph {

@@ -30,7 +30,7 @@ func build_graph_before_each() -> Graph {
     assert graph.vertices[2] = vertex_c;
     assert graph.adjacent_vertices_count[2] = 0;
     let graph_len = 3;
-    tempvar res : Graph = Graph(graph_len,graph.vertices,graph.adjacent_vertices_count);
+    tempvar res: Graph = Graph(graph_len, graph.vertices, graph.adjacent_vertices_count);
     return res;
 }
 
@@ -42,13 +42,13 @@ func test_add_node_to_graph() {
 
     tempvar graph: Graph = Graph(graph_len, vertices, adj_vertices_count);
     let graph = GraphMethods.add_vertex_to_graph(graph, TOKEN_A);
-    assert graph.graph_len = 1;
+    assert graph.length = 1;
     assert vertices[0].identifier = TOKEN_A;
     assert adj_vertices_count[0] = 0;
-    tempvar graph:Graph = Graph(graph.graph_len, graph.vertices, graph.adjacent_vertices_count);
+    tempvar graph: Graph = Graph(graph.length, graph.vertices, graph.adjacent_vertices_count);
 
     let graph = GraphMethods.add_vertex_to_graph(graph, TOKEN_B);
-    assert graph.graph_len = 2;
+    assert graph.length = 2;
     assert graph.vertices[1].identifier = TOKEN_B;
     assert graph.adjacent_vertices_count[1] = 0;
 
@@ -62,33 +62,30 @@ func test_add_neighbor() {
     assert graph.vertices[0].identifier = TOKEN_A;
     assert graph.vertices[1].identifier = TOKEN_B;
     assert graph.vertices[2].identifier = TOKEN_C;
-    assert graph.graph_len = 3;  // graph_len is 3 because we have 3 nodes in our graph
+    assert graph.length = 3;  // graph_len is 3 because we have 3 nodes in our graph
 
     // add TOKEN_B as neighbor of TOKEN_A
-    let (adj_vertices_count) = add_neighbor(
-        graph.vertices[0], graph.vertices[1], graph.graph_len, graph.adjacent_vertices_count, 0, 0
+    let graph = add_neighbor(
+        graph.vertices[0], graph.vertices[1], graph, 0, 0
     );
-    tempvar graph:Graph = Graph(graph.graph_len, graph.vertices, adj_vertices_count);
 
     assert graph.vertices[0].adjacent_vertices[0].dst.identifier = TOKEN_B;
-    assert adj_vertices_count[0] = 1;  // TOKEN_A has 1 neighbor, which is TOKEN_B
-    assert adj_vertices_count[1] = 0;  // TOKEN_B still has 0 neighbors
+    assert graph.adjacent_vertices_count[0] = 1;  // TOKEN_A has 1 neighbor, which is TOKEN_B
+    assert graph.adjacent_vertices_count[1] = 0;  // TOKEN_B still has 0 neighbors
 
     // now add TOKEN_A as neighbor of TOKEN_B
-    let (adj_vertices_count) = add_neighbor(
-        graph.vertices[1], graph.vertices[0], graph.graph_len, graph.adjacent_vertices_count, 1, 0
+    let graph = add_neighbor(
+        graph.vertices[1], graph.vertices[0], graph, 1, 0
     );
-    tempvar graph:Graph = Graph(graph.graph_len, graph.vertices, adj_vertices_count);
     assert graph.vertices[1].adjacent_vertices[0].dst.identifier = TOKEN_A;
     assert graph.adjacent_vertices_count[1] = 1;  // TOKEN_B now has 1 neighbor
 
     // add TOKEN_C as neighbor of TOKEN_A
-    let (adj_vertices_count) = add_neighbor(
-        graph.vertices[0], graph.vertices[2], graph.graph_len, graph.adjacent_vertices_count, 0, 0
+    let graph = add_neighbor(
+        graph.vertices[0], graph.vertices[2], graph, 0, 0
     );
-    tempvar graph:Graph = Graph(graph.graph_len, graph.vertices, adj_vertices_count);
     assert graph.vertices[0].adjacent_vertices[1].dst.identifier = TOKEN_C;
-    assert adj_vertices_count[0] = 2;  // TOKEN_A now has 2 neighbors
+    assert graph.adjacent_vertices_count[0] = 2;  // TOKEN_A now has 2 neighbors
 
     return ();
 }
@@ -100,7 +97,7 @@ func test_add_edge() {
     let token_c = TOKEN_C;
     let token_d = TOKEN_D;
 
-    assert graph.graph_len = 3;
+    assert graph.length = 3;
     assert graph.vertices[0].identifier = TOKEN_A;
     // add C<>D
     let graph = GraphMethods.add_edge(graph, Edge(TOKEN_C, TOKEN_D, 0));
@@ -141,11 +138,9 @@ func test_build_graph_undirected() {
     // the node at graph[i] has adj_vertices_count[i] adjacent vertices.
     // that allows us to dynamically modify the number of neighbors to a vertex, without the need
     // to rebuild the graph (since memory is write-once, we can't update a property of a struct already stored.)
-    let graph = GraphMethods.build_undirected_graph_from_edges(
-        3, input_data
-    );
+    let graph = GraphMethods.build_undirected_graph_from_edges(3, input_data);
 
-    assert graph.graph_len = 3;
+    assert graph.length = 3;
     assert graph.vertices[0].identifier = TOKEN_A;
     assert graph.vertices[1].identifier = TOKEN_B;
     assert graph.vertices[2].identifier = TOKEN_C;
@@ -163,10 +158,8 @@ func test_generate_graphviz() {
     assert input_data[1] = Edge(TOKEN_A, TOKEN_C, 1);
     assert input_data[2] = Edge(TOKEN_B, TOKEN_C, 1);
 
-    let graph = GraphMethods.build_undirected_graph_from_edges(
-        3, input_data
-    );
-    let graph_len = graph.graph_len;
+    let graph = GraphMethods.build_undirected_graph_from_edges(3, input_data);
+    let graph_len = graph.length;
     let vertices = graph.vertices;
     let adjacent_vertices_count = graph.adjacent_vertices_count;
 

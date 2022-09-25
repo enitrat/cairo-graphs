@@ -21,7 +21,7 @@ struct AdjacentVertex {
 }
 
 struct Graph {
-    graph_len:felt,
+    length:felt,
     vertices: Vertex*,
     adjacent_vertices_count: felt*,
 }
